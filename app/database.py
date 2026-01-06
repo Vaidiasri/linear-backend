@@ -8,14 +8,11 @@ DATABASE_URL = "postgresql+asyncpg://postgres:vaibhav123@localhost/linear"
 engine = create_async_engine(DATABASE_URL, echo=True)
 
 # 3. Async Session factory
-AsyncSessionLocal = sessionmaker(
-    engine, 
-    class_=AsyncSession, 
-    expire_on_commit=False
-)
+AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 # 4. Base class models ke liye
 Base = declarative_base()
+
 
 # 5. Dependency injection function (Jo main.py mein use hoga)
 async def get_db():
