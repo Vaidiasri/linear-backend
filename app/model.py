@@ -1,8 +1,8 @@
-form sqlalchemy import Column,String,Integer,Foreignkey,Text,DateTime
-form sqlalchemy.dialects.postgressql import UUID
-import UUID
-form datetime import datetime
-form .database import Base
+from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
+from datetime import datetime
+from .database import Base
 
 class User(Base):
     __tablename__ = "users"

@@ -18,7 +18,7 @@ async def health_check():
 
 @app.on_event("startup")
 async def startup():
-    # Ye line database mein tables create karti hai agar wo nahi hain
+    from . import model  # Import ko yahan andar le aao
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     print("Database tables created!")
