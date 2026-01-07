@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .database import engine, Base
+from .lib.database import engine, Base
 
 # Iska matlab hai models wali file load karo taaki Base ko pata chale kitni tables hain
 from . import model
@@ -31,5 +31,3 @@ async def startup():
     except Exception as e:
         print(f"⚠️ Database connection failed: {e}")
         print("Server will start anyway, but database operations won't work.")
-
-

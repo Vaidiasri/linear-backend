@@ -2,7 +2,8 @@ from sqlalchemy import Column, String, Integer, ForeignKey, Text, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
-from .database import Base
+from ..lib.database import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -11,27 +12,32 @@ class User(Base):
     full_name = Column(String)
     hashed_password = Column(String, nullable=False)
 
+
 class Team(Base):
-    __tablename__="teams"
-    id=Column(UUID(as_uuid=True),primary_key=True,default=uuid.uuid4)
-    name=Column(String,nullable=False)
-    key=Column(String,unique=True,index=True) # Example ticket kis ki hai let say 'Frontend'
+    __tablename__ = "teams"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    key = Column(
+        String, unique=True, index=True
+    )  # Example ticket kis ki hai let say 'Frontend'
+
+
 class Issue(Base):
     __tablename__ = "issues"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     # ENG-1, ENG-2 banane ke liye ye identifier kaam aayega
-    identifier = Column(String, unique=True, index=True) 
+    identifier = Column(String, unique=True, index=True)
     title = Column(String, nullable=False)
     description = Column(Text)
-    status = Column(String, default="backlog") # todo, in-progress, done
-    priority = Column(Integer, default=0) # 0 to 4
-    
+    status = Column(String, default="backlog")  # todo, in-progress, done
+    priority = Column(Integer, default=0)  # 0 to 4
+
     # Relationships (Foreign Keys)
     team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"))
     assignee_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     creator_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    
+
     # Self-reference for Sub-tasks (Advanced Logic)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("issues.id"), nullable=True)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
