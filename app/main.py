@@ -4,6 +4,7 @@ from .database import engine, Base
 # Iska matlab hai models wali file load karo taaki Base ko pata chale kitni tables hain
 from . import model
 
+
 # 1. App ko initialize karo
 app = FastAPI(title="Linear Clone API")
 
@@ -23,7 +24,6 @@ async def health_check():
 @app.on_event("startup")
 async def startup():
     try:
-        from . import model  # Import ko yahan andar le aao
 
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
@@ -31,3 +31,5 @@ async def startup():
     except Exception as e:
         print(f"⚠️ Database connection failed: {e}")
         print("Server will start anyway, but database operations won't work.")
+
+
