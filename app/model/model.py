@@ -34,11 +34,14 @@ class Issue(Base):
     priority = Column(Integer, default=0)  # 0 to 4
 
     # Relationships (Foreign Keys)
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"))
+    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"),nullable=True)
     assignee_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     creator_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    creator = relationship("User", foreign_keys=[creator_id]) # user  aur  issue  ko connent  kar  liya hai 
+    assignee = relationship("User", foreign_keys=[assignee_id])
 
     # Self-reference for Sub-tasks (Advanced Logic)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("issues.id"), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+
