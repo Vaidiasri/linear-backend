@@ -1,9 +1,11 @@
 from fastapi import FastAPI, status
+
+from app.routers import issue
 from .lib.database import engine, Base
 
 # Iska matlab hai models wali file load karo taaki Base ko pata chale kitni tables hain
 from . import model
-from .routers import user, auth  # 1. Apne naye router folder ko import karo
+from .routers import user, auth, issue  # 1. Apne naye router folder ko import karo
 
 
 # 1. App ko initialize karo
@@ -12,6 +14,7 @@ app = FastAPI(title="Linear Clone API")
 # Isse saare signup routes main app se connect ho jayenge.
 app.include_router(user.router)
 app.include_router(auth.router)
+app.include_router(issue.router)
 
 
 # 2. Ek test route banao (Browser pe dikhega)
