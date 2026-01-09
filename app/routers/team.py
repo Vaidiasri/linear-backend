@@ -40,3 +40,36 @@ async def get_team_by_id(
         )
     
     return team
+
+
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.TeamOut)
+async def create_team(
+    team: schemas.TeamCreate,  # Request body se data aayega: {name: "Engineering", key: "ENG"}
+    db: AsyncSession = Depends(get_db),
+    current_user: model.User = Depends(oauth2.get_current_user)
+):
+    # team.key = Request body mein jo "key" value aayi hai (e.g., "ENG", "DESIGN")
+    # Example: Agar request body me {"name": "Engineering Team", "key": "ENG"} hai
+    # To team.key = "ENG" hoga
+    
+    # Check if team with same key already exists
+    # Database mein pehle se hi same key ki team hai ya nahi check kar rahe hain
+    query = select(model.Team).where(model.Team.key == team.key)  # team.key = request se aaya key
+    result = await db.execute(query)
+    existing_team = result.scalars().first()  # Agar mil gayi to existing_team mein data hoga, nahi to None
+    
+    if existing_team:
+        # Agar same key ki team already exist karti hai, to error throw karo
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Team with this key already exists"
+        )
+    
+    # Create new team
+    # team.model_dump() = {"name": "Engineering Team", "key": "ENG"} (dictionary ban jayega)
+    new_team = model.Team(**team.model_dump())  # Dictionary ko unpack karke Team model object banao
+    db.add(new_team)
+    await db.commit()
+    await db.refresh(new_team)
+    
+    return new_team
