@@ -21,6 +21,8 @@ class Team(Base):
     key = Column(
         String, unique=True, index=True
     )  # Example ticket kis ki hai let say 'Frontend'
+    # make  the  relationship with issues
+    issuses=relationship("Issue",back_populates="team")
 
 
 class Issue(Base):
