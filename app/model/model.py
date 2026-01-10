@@ -37,10 +37,12 @@ class Issue(Base):
 
     # Relationships (Foreign Keys)
     team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"),nullable=True)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
     assignee_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     creator_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     creator = relationship("User", foreign_keys=[creator_id]) # user  aur  issue  ko connent  kar  liya hai 
     assignee = relationship("User", foreign_keys=[assignee_id])
+    project = relationship("Project", back_populates="issues")
 
     # Self-reference for Sub-tasks (Advanced Logic)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("issues.id"), nullable=True)
