@@ -4,7 +4,7 @@ from .lib.database import engine, Base
 
 # Iska matlab hai models wali file load karo taaki Base ko pata chale kitni tables hain
 from . import model
-from .routers import user, auth, issue, team  # 1. Apne naye router folder ko import karo
+from .routers import user, auth, issue, team ,project # 1. Apne naye router folder ko import karo
 
 
 # 1. App ko initialize karo
@@ -15,6 +15,7 @@ app.include_router(user.router)
 app.include_router(auth.router)
 app.include_router(issue.router)
 app.include_router(team.router)
+app.include_router(project.router)
 
 
 # 2. Ek test route banao (Browser pe dikhega)
