@@ -73,3 +73,56 @@ async def create_team(
     await db.refresh(new_team)
     
     return new_team
+# team update api 
+@router.put("/{id}",status_code=status.HTTP_202_ACCEPTED,response_model=schemas.TeamOut)
+async def update_team(id:UUID,update_team:schemas.TeamCreate,db:AsyncSession=Depends(get_db)):
+    query=select(model.Team).where(model.Team.id==id)
+    result=await db.execute(query)
+    team = result.scalars().first()
+    if not team:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Bhai asi koi team  nahi hai sorry")
+    # Check if updated key already exists (if key is being changed)
+    if update_team.key != team.key:
+        key_query = select(model.Team).where(model.Team.key == update_team.key)
+        key_result = await db.execute(key_query)
+        existing_team = key_result.scalars().first()
+        
+        if existing_team:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Team with this key already exists"
+            )
+    
+    # Update team data
+    for key, value in update_team.model_dump().items():
+        setattr(team, key, value)
+    
+    await db.commit()
+    await db.refresh(team)
+    
+    return team
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_team(
+    id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: model.User = Depends(oauth2.get_current_user)
+):
+    # Check if team exists
+    query = select(model.Team).where(model.Team.id == id)
+    result = await db.execute(query)
+    team = result.scalars().first()
+    
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Team not found"
+        )
+    
+    # Delete team
+    await db.delete(team)
+    await db.commit()
+    
+    return None
+
