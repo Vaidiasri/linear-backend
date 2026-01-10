@@ -1,3 +1,3 @@
-from .model import User, Team, Issue
+from .model import User, Team, Issue,Project
 
-__all__ = ["User", "Team", "Issue"]
+__all__ = ["User", "Team", "Issue","Project"]

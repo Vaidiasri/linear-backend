@@ -47,3 +47,16 @@ class Issue(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
+#  projet  model 
+class Project(Base):
+    __tablename__ = "projects"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    
+    # Ye Project kis Team ka hai?
+    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    
+    # Relationships
+    team = relationship("Team", back_populates="projects")
+    issues = relationship("Issue", back_populates="project")   
