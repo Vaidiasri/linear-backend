@@ -12,6 +12,12 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     full_name = Column(String)
     hashed_password = Column(String, nullable=False)
+    created_issues = relationship(
+        "Issue", foreign_keys="[Issue.creator_id]", back_populates="creator"
+    )
+    assigned_issues = relationship(
+        "Issue", foreign_keys="[Issue.assignee_id]", back_populates="assignee"
+    )
 
 
 class Team(Base):
