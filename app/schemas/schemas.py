@@ -56,6 +56,8 @@ class IssueOut(IssueBase):
     id: UUID
     creator_id: UUID
     created_at: datetime
+    # Optional: UserOut schema ko nested bhej sakte ho (Relationship ke zariye)
+    # assignee: Optional[UserOut] = None
 
     class Config:
         from_attributes = True

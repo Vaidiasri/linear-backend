@@ -14,7 +14,7 @@ async def create_issues(
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
-    # Validate project_id if provided
+    # 1. Project Validation
     if issue.project_id:
         project_query = select(model.Project).where(
             model.Project.id == issue.project_id
@@ -27,8 +27,31 @@ async def create_issues(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
             )
 
-    # Create new issue
+    # 2. Assignee Validation
+    if issue.assignee_id:
+        user_query = select(model.User).where(model.User.id == issue.assignee_id)
+        user_result = await db.execute(user_query)
+        assignee = user_result.scalars().first()
+
+        if not assignee:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Assignee user not found"
+            )
+
+    # 3. Team Validation
+    if issue.team_id:
+        team_query = select(model.Team).where(model.Team.id == issue.team_id)
+        team_result = await db.execute(team_query)
+        team = team_result.scalars().first()
+
+        if not team:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
+            )
+
+    # 4. Create new issue
     new_issue = model.Issue(**issue.model_dump(), creator_id=current_user.id)
+
     db.add(new_issue)
     await db.commit()
     await db.refresh(new_issue)
