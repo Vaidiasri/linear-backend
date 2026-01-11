@@ -4,7 +4,13 @@ from .lib.database import engine, Base
 
 # Iska matlab hai models wali file load karo taaki Base ko pata chale kitni tables hain
 from . import model
-from .routers import user, auth, issue, team ,project # 1. Apne naye router folder ko import karo
+from .routers import (
+    user,
+    auth,
+    issue,
+    team,
+    project,
+)  # 1. Apne naye router folder ko import karo
 
 
 # 1. App ko initialize karo
@@ -32,11 +38,12 @@ async def health_check():
 
 @app.on_event("startup")
 async def startup():
-    try:
-
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        print("✅ Database tables created successfully!")
-    except Exception as e:
-        print(f"⚠️ Database connection failed: {e}")
-        print("Server will start anyway, but database operations won't work.")
+    # Alembic ab migrations handle karega, auto-create ki zarurat nahi
+    # try:
+    #     async with engine.begin() as conn:
+    #         await conn.run_sync(Base.metadata.create_all)
+    #     print("✅ Database tables created successfully!")
+    # except Exception as e:
+    #     print(f"⚠️ Database connection failed: {e}")
+    #     print("Server will start anyway, but database operations won't work.")
+    print("✅ Server started! Use 'alembic upgrade head' for migrations.")

@@ -22,7 +22,8 @@ class Team(Base):
         String, unique=True, index=True
     )  # Example ticket kis ki hai let say 'Frontend'
     # make  the  relationship with issues
-    issuses=relationship("Issue",back_populates="team")
+    issues = relationship("Issue", back_populates="team")
+    projects = relationship("Project", back_populates="team")
 
 
 class Issue(Base):
@@ -36,12 +37,15 @@ class Issue(Base):
     priority = Column(Integer, default=0)  # 0 to 4
 
     # Relationships (Foreign Keys)
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"),nullable=True)
+    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=True)
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
     assignee_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     creator_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    creator = relationship("User", foreign_keys=[creator_id]) # user  aur  issue  ko connent  kar  liya hai 
+    creator = relationship(
+        "User", foreign_keys=[creator_id]
+    )  # user  aur  issue  ko connent  kar  liya hai
     assignee = relationship("User", foreign_keys=[assignee_id])
+    team = relationship("Team", back_populates="issues")
     project = relationship("Project", back_populates="issues")
 
     # Self-reference for Sub-tasks (Advanced Logic)
@@ -49,16 +53,19 @@ class Issue(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
-#  projet  model 
+
+#  projet  model
 class Project(Base):
     __tablename__ = "projects"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    
+
     # Ye Project kis Team ka hai?
-    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
-    
+    team_id = Column(
+        UUID(as_uuid=True), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False
+    )
+
     # Relationships
     team = relationship("Team", back_populates="projects")
-    issues = relationship("Issue", back_populates="project")   
+    issues = relationship("Issue", back_populates="project")
