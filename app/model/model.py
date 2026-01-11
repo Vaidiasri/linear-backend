@@ -18,6 +18,9 @@ class User(Base):
     assigned_issues = relationship(
         "Issue", foreign_keys="[Issue.assignee_id]", back_populates="assignee"
     )
+    comments = relationship(
+        "Comment", back_populates="author"
+    )  # User ke saare comments
 
 
 class Team(Base):
@@ -53,6 +56,9 @@ class Issue(Base):
     assignee = relationship("User", foreign_keys=[assignee_id])
     team = relationship("Team", back_populates="issues")
     project = relationship("Project", back_populates="issues")
+    comments = relationship(
+        "Comment", back_populates="issue"
+    )  # Issue ke saare comments
 
     # Self-reference for Sub-tasks (Advanced Logic)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("issues.id"), nullable=True)
@@ -75,3 +81,24 @@ class Project(Base):
     # Relationships
     team = relationship("Team", back_populates="projects")
     issues = relationship("Issue", back_populates="project")
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    content = Column(
+        String, nullable=False
+    )  # Isko Text bhi kar sakta hai agar lambe comments chahiye
+
+    # 1. Kis Issue par comment hai? (Tune likha hai, sahi hai)
+    issue_id = Column(UUID(as_uuid=True), ForeignKey("issues.id", ondelete="CASCADE"))
+
+    # 2. Kisne comment kiya? (Ye missing tha bhai!)
+    author_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+
+    # 3. Kab kiya? (Ye bhi zaroori hai list dikhane ke liye)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    issue = relationship("Issue", back_populates="comments")
+    author = relationship("User")  # Isse tu comment.author.full_name nikal payega
