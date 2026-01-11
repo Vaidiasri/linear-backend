@@ -33,10 +33,10 @@ python main.py
 # Terminal mein Ctrl+C press karo
 
 # Step 2: Migration create karo (server band hona chahiye)
-alembic revision --autogenerate -m "Your change description"
+python -m alembic revision --autogenerate -m "Your change description"
 
 # Step 3: Migration apply karo (server band hai)
-alembic upgrade head
+python -m alembic upgrade head
 
 # Step 4: Server wapas start karo
 python main.py
@@ -46,47 +46,49 @@ python main.py
 
 ## 📝 Common Commands
 
+⚠️ **RECOMMENDED:** Hamesha `python -m alembic` use karo (virtual environment issues avoid karne ke liye)
+
 ### **Migration Create Karna**
 
 ```bash
-alembic revision --autogenerate -m "Added phone_number to User table"
+python -m alembic revision --autogenerate -m "Added phone_number to User table"
 ```
 
 ### **Migration Apply Karna (Database Update)**
 
 ```bash
-alembic upgrade head
+python -m alembic upgrade head
 ```
 
 ### **Migration History Dekhna**
 
 ```bash
-alembic history
+python -m alembic history
 ```
 
 ### **Current Version Check Karna**
 
 ```bash
-alembic current
+python -m alembic current
 ```
 
 ### **Rollback Karna (Ek Step Peeche)**
 
 ```bash
-alembic downgrade -1
+python -m alembic downgrade -1
 ```
 
 ### **Complete Rollback (Sabse Pehle Wale State Pe)**
 
 ```bash
-alembic downgrade base
+python -m alembic downgrade base
 ```
 
 ### **Specific Version Pe Jaana**
 
 ```bash
-alembic upgrade <revision_id>
-# Example: alembic upgrade 91185e2ee860
+python -m alembic upgrade <revision_id>
+# Example: python -m alembic upgrade 91185e2ee860
 ```
 
 ---
@@ -117,13 +119,13 @@ class User(Base):
 **Step 3: Migration Create Karo**
 
 ```bash
-alembic revision --autogenerate -m "Added phone_number to User"
+python -m alembic revision --autogenerate -m "Added phone_number to User"
 ```
 
 **Step 4: Migration Apply Karo**
 
 ```bash
-alembic upgrade head
+python -m alembic upgrade head
 ```
 
 **Step 5: Server Start Karo**
@@ -203,6 +205,29 @@ alembic upgrade head
 - Already fixed hai! `env.py` automatically async URL ko sync mein convert karta hai
 - `postgresql+asyncpg://` → `postgresql+psycopg2://`
 
+### **Issue 5: "ModuleNotFoundError: No module named 'psycopg2'"**
+
+Ye error tab aata hai jab virtual environment properly load nahi hota.
+
+**❌ Problem:**
+
+```bash
+alembic revision --autogenerate -m "message"
+# Error: ModuleNotFoundError: No module named 'psycopg2'
+```
+
+**✅ Solution: `python -m` use karo**
+
+```bash
+# Hamesha ye commands use karo:
+python -m alembic revision --autogenerate -m "message"
+python -m alembic upgrade head
+python -m alembic current
+python -m alembic history
+```
+
+**Kyun?** `python -m alembic` proper Python module ke through run karta hai aur virtual environment correctly load hota hai.
+
 ---
 
 ## 🔄 Workflow Diagram
@@ -218,9 +243,9 @@ alembic upgrade head
                                  │
                                  ├─ 1. Server STOP karo (Ctrl+C)
                                  │
-                                 ├─ 2. alembic revision --autogenerate -m "message"
+                                 ├─ 2. python -m alembic revision --autogenerate -m "message"
                                  │
-                                 ├─ 3. alembic upgrade head
+                                 ├─ 3. python -m alembic upgrade head
                                  │
                                  └─ 4. python main.py (Server wapas start)
 ```
@@ -236,15 +261,15 @@ alembic upgrade head
 
 ## 🎯 Quick Reference Card
 
-| Task              | Command                                        |
-| ----------------- | ---------------------------------------------- |
-| Create Migration  | `alembic revision --autogenerate -m "message"` |
-| Apply Migration   | `alembic upgrade head`                         |
-| View History      | `alembic history`                              |
-| Current Version   | `alembic current`                              |
-| Rollback One Step | `alembic downgrade -1`                         |
-| Rollback All      | `alembic downgrade base`                       |
-| Specific Version  | `alembic upgrade <revision_id>`                |
+| Task              | Command                                                  |
+| ----------------- | -------------------------------------------------------- |
+| Create Migration  | `python -m alembic revision --autogenerate -m "message"` |
+| Apply Migration   | `python -m alembic upgrade head`                         |
+| View History      | `python -m alembic history`                              |
+| Current Version   | `python -m alembic current`                              |
+| Rollback One Step | `python -m alembic downgrade -1`                         |
+| Rollback All      | `python -m alembic downgrade base`                       |
+| Specific Version  | `python -m alembic upgrade <revision_id>`                |
 
 ---
 
