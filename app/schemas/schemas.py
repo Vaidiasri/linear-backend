@@ -124,3 +124,43 @@ class CommentOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Activity Schemas
+class ActivityOut(BaseModel):
+    """
+    Activity log output - Issue ki history dikhane ke liye
+    """
+
+    id: UUID
+    issue_id: UUID
+    user_id: UUID
+    attribute: str  # Kaunsa field change hua (status, priority, etc.)
+    old_value: str
+    new_value: str
+    created_at: datetime
+
+    # Nested user data - Kisne change kiya
+    user: UserOut
+
+    class Config:
+        from_attributes = True
+
+
+# Enhanced Issue Detail Schema with nested data
+class IssueDetailOut(IssueBase):
+    """
+    Complete issue details with comments and activity logs
+    Used for single issue view (GET /issues/{id})
+    """
+
+    id: UUID
+    creator_id: UUID
+    created_at: datetime
+
+    # Nested related data
+    comments: list[CommentOut] = []  # Sabhi comments
+    activities: list[ActivityOut] = []  # Sabhi activity logs
+
+    class Config:
+        from_attributes = True

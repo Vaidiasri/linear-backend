@@ -59,6 +59,9 @@ class Issue(Base):
     comments = relationship(
         "Comment", back_populates="issue"
     )  # Issue ke saare comments
+    activities = relationship(
+        "Activity", back_populates="issue"
+    )  # Issue ki saari activity history
 
     # Self-reference for Sub-tasks (Advanced Logic)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("issues.id"), nullable=True)
@@ -102,15 +105,19 @@ class Comment(Base):
     # Relationships
     issue = relationship("Issue", back_populates="comments")
     author = relationship("User")  # Isse tu comment.author.full_name nikal payega
+
+
 class Activity(Base):
     __tablename__ = "activities"
-    id=Column(UUID (as_uuid=True),primary_key=True,default=uuid.uuid4)
-    issue_id=Column(UUID (as_uuid=True),ForeignKey("issues.id",ondelete="CASCADE")) # bhai isse  ka mtlab m ki foreign key  k through hai  talbe  m connetion banege 
-    user_id=Column(UUID (as_uuid=True),ForeignKey("users.id"),ondelete="CASCADE")
-    attribute=Column(String,nullable=False)
-    old_value=Column(String,nullable=False)
-    new_value=Column(String,nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    issue_id = Column(
+        UUID(as_uuid=True), ForeignKey("issues.id", ondelete="CASCADE")
+    )  # bhai isse  ka mtlab m ki foreign key  k through hai  talbe  m connetion banege
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    attribute = Column(String, nullable=False)
+    old_value = Column(String, nullable=False)
+    new_value = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    # relationship bana lete  hai 
-    issue=relationship("Issue",back_populates="activities")
-    user=relationship("User")
+    # relationship bana lete  hai
+    issue = relationship("Issue", back_populates="activities")
+    user = relationship("User")
