@@ -116,9 +116,23 @@ async def update_issue(
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
                 )
+    # 1. Pehle decide karo kaunse fields track karne hain
+    tracked_fields=["status","priority","title","assignee_id"]
 
     # Update issue data
     for key, value in updated_issue.model_dump().items():
+        old_val=getattr(issue,key)
+        if key in tracked_fields and str(old_val) != str(value):
+            # Agar badli hai, toh Activity Log ki ek entry banao
+            new_log = model.Activity(
+                issue_id=issue.id,
+                user_id=current_user.id,
+                attribute=key,
+                old_value=str(old_val),
+                new_value=str(value)
+            )
+            db.add(new_log) # Database mein queue kar do
+
         setattr(issue, key, value)
 
     await db.commit()
