@@ -106,7 +106,7 @@ class Activity(Base):
     __tablename__ = "activities"
     id=Column(UUID (as_uuid=True),primary_key=True,default=uuid.uuid4)
     issue_id=Column(UUID (as_uuid=True),ForeignKey("issues.id",ondelete="CASCADE")) # bhai isse  ka mtlab m ki foreign key  k through hai  talbe  m connetion banege 
-    user_id=Column(UUID (as_uuid=True),ForeignKey("user.id"),ondelete="CASCADE")
+    user_id=Column(UUID (as_uuid=True),ForeignKey("users.id"),ondelete="CASCADE")
     attribute=Column(String,nullable=False)
     old_value=Column(String,nullable=False)
     new_value=Column(String,nullable=False)
