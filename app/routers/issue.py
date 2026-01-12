@@ -56,6 +56,18 @@ async def create_issues(
         new_issue = model.Issue(**issue.model_dump(), creator_id=current_user.id)
 
         db.add(new_issue)
+        # Activity Log for Creation
+        creation_log = model.Activity(
+            issue_id=new_issue.id,
+            user_id=current_user.id,
+            attribute="created",
+            old_value="",  # Empty string instead of None (NOT NULL constraint)
+            new_value=f"Issue created by {current_user.email}",
+        )
+        db.add(creation_log)
+        # Note: Assignee log NOT created on creation - it's part of initial state
+        # Activity logs are only for CHANGES, not initial values
+        # ---------------------------
         await db.commit()
         await db.refresh(new_issue)
         return new_issue
@@ -75,22 +87,41 @@ async def create_issues(
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[schemas.IssueOut])
 async def get_all_issues(
-    status_filter: str | None = None,  # Query parameter for status filtering
-    priority: int | None = None,  # Query parameter for priority filtering
+    # 1. Saare optional filters yahan add kar diye
+    status_filter: str | None = None,
+    priority: int | None = None,
+    team_id: UUID | None = None,
+    project_id: UUID | None = None,
+    assignee_id: UUID | None = None,
+    search: str | None = None,  # Title search ke liye
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
-    # Base query - Get all issues created by the current user
+    # 2. Base query
     query = select(model.Issue).where(model.Issue.creator_id == current_user.id)
 
-    # Apply status filter agar provided hai
+    # 3. Dynamic Filters (Jo user ne bheja sirf wahi add hoga)
     if status_filter:
         query = query.where(model.Issue.status == status_filter)
 
-    # Apply priority filter agar provided hai
     if priority is not None:
         query = query.where(model.Issue.priority == priority)
 
+    if team_id:
+        query = query.where(model.Issue.team_id == team_id)
+
+    if project_id:
+        query = query.where(model.Issue.project_id == project_id)
+
+    if assignee_id:
+        query = query.where(model.Issue.assignee_id == assignee_id)
+
+    # 4. Search Logic (Title mein kahin bhi word match ho jaye)
+    if search:
+        # ilike case-insensitive hota hai (Bug = bug)
+        query = query.where(model.Issue.title.ilike(f"%{search}%"))
+
+    # 5. Result
     result = await db.execute(query)
     issues = result.scalars().all()
 
