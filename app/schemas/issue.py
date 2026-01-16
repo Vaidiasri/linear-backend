@@ -65,5 +65,5 @@ class IssueDetailOut(IssueBase):
 # Issue  state  schema 
 class IssueStats(BaseModel):
     total_count:int
-    status_counts:dict
-    priority_counts:dict
+    status_counts:dict[str,int]
+    priority_counts:dict[str,int]

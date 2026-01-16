@@ -50,8 +50,23 @@ async def create_issue(
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
+    """
+    Create a new issue.
+
+    This endpoint validates the existence of linked project, assignee, and team
+    before creating the issue. It also logs the creation in the activity log.
+
+    Args:
+        issue: Issue creation data including title, description, and foreign keys.
+        db: Database session.
+        current_user: Authenticated user creating the issue.
+
+    Returns:
+        The newly created issue object.
+    """
     try:
         # 1. Validation Logic Helper
+        # Ensure that provided project ID, assignee ID, and team ID exist
         await validate_issue_entities(
             db,
             project_id=issue.project_id,
@@ -94,16 +109,40 @@ async def create_issue(
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[schemas.IssueOut])
 async def get_all_issues(
-    # 1. Saare optional filters yahan add kar diye
+    # 1. Optional Filters
     status_filter: str | None = None,
     priority: int | None = None,
     team_id: UUID | None = None,
     project_id: UUID | None = None,
     assignee_id: UUID | None = None,
-    search: str | None = None,  # Title search ke liye
+    search: str | None = None,  # Case-insensitive title search
+    skip: int = 0,  # Pagination: Number of records to skip
+    limit: int = 10,  # Pagination: Maximum number of records to return
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
+    """
+    Retrieve a list of issues with optional filtering and pagination.
+
+    Supports filtering by status, priority, team, project, and assignee.
+    Also provides case-insensitive search on issue titles.
+    Pagination is implemented using skip and limit.
+
+    Args:
+        status_filter: Filter by issue status (e.g., 'todo', 'done').
+        priority: Filter by priority level (integer).
+        team_id: Filter by assigned team.
+        project_id: Filter by associated project.
+        assignee_id: Filter by assigned user.
+        search: Search term for issue title.
+        skip: Number of records to skip (default: 0).
+        limit: Max records to return (default: 10).
+        db: Database session.
+        current_user: Authenticated user making the request.
+
+    Returns:
+        A list of issue objects matching the criteria.
+    """
     # 2. Base query
     query = select(model.Issue).where(model.Issue.creator_id == current_user.id)
 
@@ -128,7 +167,11 @@ async def get_all_issues(
         # ilike case-insensitive hota hai (Bug = bug)
         query = query.where(model.Issue.title.ilike(f"%{search}%"))
 
-    # 5. Result
+    # 6. Pagination
+    # Apply offset and limit to the query for pagination
+    query = query.offset(skip).limit(limit)
+
+    # 7. Execution
     result = await db.execute(query)
     issues = result.scalars().all()
 
@@ -144,6 +187,23 @@ async def get_issue_by_id(
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
+    """
+    Get detailed information about a specific issue.
+
+    Fetches the issue along with comments (and their authors) and activity logs
+    (and their acting users) using eager loading to prevent N+1 query problems.
+
+    Args:
+        id: UUID of the issue to retrieve.
+        db: Database session.
+        current_user: Authenticated user.
+
+    Returns:
+        Detailed issue object.
+
+    Raises:
+        HTTPException: If issue is not found or user lacks access.
+    """
     # Eager loading - ek hi query mein sab kuch fetch karo
     # selectinload se N+1 query problem avoid hoga
     query = (
@@ -177,6 +237,25 @@ async def update_issue(
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
+    """
+    Update an existing issue.
+
+    Modifies issue details and automatically logs significant changes (status,
+    priority, title, assignee) in the activity log.
+    Ensures that any new foreign key references (project, team, assignee) are valid.
+
+    Args:
+        id: UUID of the issue to update.
+        updated_issue: New data for the issue.
+        db: Database session.
+        current_user: Authenticated user (must be the creator/owner).
+
+    Returns:
+        The updated issue object.
+
+    Raises:
+        HTTPException: If issue/entities not found or permission denied.
+    """
     try:
         # Check if issue exists and user is the owner
         query = select(model.Issue).where(
@@ -251,6 +330,19 @@ async def delete_issue(
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
+    """
+    Delete an issue.
+
+    Permanently removes an issue from the database. Only the creator can delete it.
+
+    Args:
+        id: UUID of the issue to delete.
+        db: Database session.
+        current_user: Authenticated user (must be the creator).
+
+    Returns:
+        None (204 No Content).
+    """
     try:
         # Check if issue exists and user is the owner
         query = select(model.Issue).where(
@@ -287,6 +379,24 @@ async def get_issue_stats(
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
+    """
+    Get aggregated statistics for the user's issues.
+
+    Computes:
+    1. Total number of issues created by the user.
+    2. Count of issues per status (e.g., {'todo': 5, 'in_progress': 2}).
+    3. Count of issues per priority (e.g., {1: 10, 2: 5}).
+
+    Uses asyncio.gather to run these independent aggregation queries concurrently
+    for better performance.
+
+    Args:
+        db: Database session.
+        current_user: Authenticated user.
+
+    Returns:
+        IssueStats object containing the aggregated counts.
+    """
     # 1. Total Issues Count
     total_query = select(func.count(model.Issue.id)).where(
         model.Issue.creator_id == current_user.id
