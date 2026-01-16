@@ -1,56 +1,63 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from uuid import UUID
 from .. import schemas, model, utils, oauth2
 from ..lib.database import get_db
+from sqlalchemy import func
 
 router = APIRouter(prefix="/issues", tags=["Issues"])
 
 
+async def validate_issue_entities(
+    db: AsyncSession,
+    project_id: UUID | None = None,
+    assignee_id: UUID | None = None,
+    team_id: UUID | None = None,
+):
+    """
+    Helper function to validate existence of related entities.
+    Raises HTTPException if any entity is not found.
+    """
+    if project_id:
+        project = await db.get(model.Project, project_id)
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+            )
+
+    if assignee_id:
+        assignee = await db.get(model.User, assignee_id)
+        if not assignee:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Assignee user not found",
+            )
+
+    if team_id:
+        team = await db.get(model.Team, team_id)
+        if not team:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
+            )
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.IssueOut)
-async def create_issues(
+async def create_issue(
     issue: schemas.IssueCreate,
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
     try:
-        # 1. Project Validation
-        if issue.project_id:
-            project_query = select(model.Project).where(
-                model.Project.id == issue.project_id
-            )
-            project_result = await db.execute(project_query)
-            project = project_result.scalars().first()
-
-            if not project:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
-                )
-
-        # 2. Assignee Validation
-        if issue.assignee_id:
-            user_query = select(model.User).where(model.User.id == issue.assignee_id)
-            user_result = await db.execute(user_query)
-            assignee = user_result.scalars().first()
-
-            if not assignee:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Assignee user not found",
-                )
-
-        # 3. Team Validation
-        if issue.team_id:
-            team_query = select(model.Team).where(model.Team.id == issue.team_id)
-            team_result = await db.execute(team_query)
-            team = team_result.scalars().first()
-
-            if not team:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
-                )
+        # 1. Validation Logic Helper
+        await validate_issue_entities(
+            db,
+            project_id=issue.project_id,
+            assignee_id=issue.assignee_id,
+            team_id=issue.team_id,
+        )
 
         # 4. Create new issue
         new_issue = model.Issue(**issue.model_dump(), creator_id=current_user.id)
@@ -186,43 +193,15 @@ async def update_issue(
 
         # Validate project_id if provided and changed
         if updated_issue.project_id and updated_issue.project_id != issue.project_id:
-            project_query = select(model.Project).where(
-                model.Project.id == updated_issue.project_id
-            )
-            project_result = await db.execute(project_query)
-            project = project_result.scalars().first()
-
-            if not project:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
-                )
+            await validate_issue_entities(db, project_id=updated_issue.project_id)
 
         # Validate assignee_id if provided and changed
         if updated_issue.assignee_id and updated_issue.assignee_id != issue.assignee_id:
-            user_query = select(model.User).where(
-                model.User.id == updated_issue.assignee_id
-            )
-            user_result = await db.execute(user_query)
-            assignee = user_result.scalars().first()
-
-            if not assignee:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Assignee user not found",
-                )
+            await validate_issue_entities(db, assignee_id=updated_issue.assignee_id)
 
         # Validate team_id if provided and changed
         if updated_issue.team_id and updated_issue.team_id != issue.team_id:
-            team_query = select(model.Team).where(
-                model.Team.id == updated_issue.team_id
-            )
-            team_result = await db.execute(team_query)
-            team = team_result.scalars().first()
-
-            if not team:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
-                )
+            await validate_issue_entities(db, team_id=updated_issue.team_id)
 
         # Fields to track for activity logging
         tracked_fields = ["status", "priority", "title", "assignee_id"]
@@ -301,3 +280,47 @@ async def delete_issue(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete issue: {str(e)}",
         )
+
+
+@router.get("/stats", response_model=schemas.IssueStats)
+async def get_issue_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: model.User = Depends(oauth2.get_current_user),
+):
+    # 1. Total Issues Count
+    total_query = select(func.count(model.Issue.id)).where(
+        model.Issue.creator_id == current_user.id
+    )
+    # 2. Status-wise Counts (Group By Status)
+    status_query = (
+        select(model.Issue.status, func.count(model.Issue.id))
+        .where(model.Issue.creator_id == current_user.id)
+        .group_by(model.Issue.status)
+    )
+
+    # 3. Priority-wise Counts (Group By Priority)
+    priority_query = (
+        select(model.Issue.priority, func.count(model.Issue.id))
+        .where(model.Issue.creator_id == current_user.id)
+        .group_by(model.Issue.priority)
+    )
+
+    # Run all queries in parallel
+    total_task = db.execute(total_query)
+    status_task = db.execute(status_query)
+    priority_task = db.execute(priority_query)
+
+    total_result, status_result, priority_result = await asyncio.gather(
+        total_task, status_task, priority_task
+    )
+
+    # Process results
+    total_count = total_result.scalar() or 0
+    status_counts = {row[0]: row[1] for row in status_result.all()}
+    priority_counts = {row[0]: row[1] for row in priority_result.all()}
+
+    return {
+        "total_count": total_count,
+        "status_counts": status_counts,
+        "priority_counts": priority_counts,
+    }

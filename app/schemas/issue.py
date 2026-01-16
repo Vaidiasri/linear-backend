@@ -62,3 +62,8 @@ class IssueDetailOut(IssueBase):
 
     class Config:
         from_attributes = True
+# Issue  state  schema 
+class IssueStats(BaseModel):
+    total_count:int
+    status_counts:dict
+    priority_counts:dict
