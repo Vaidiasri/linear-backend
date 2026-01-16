@@ -9,50 +9,49 @@ from ..lib.database import get_db
 router = APIRouter(prefix="/issues/{issue_id}/comments", tags=["Comments"])
 
 
-@router.post(
-    "/", status_code=status.HTTP_201_CREATED, response_model=schemas.CommentOut
-)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.CommentOut)
 async def create_comment(
     issue_id: UUID,
     comment: schemas.CommentCreate,
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
-    """
-    Issue par naya comment create karo
-    - issue_id: URL se aayega
-    - author_id: Current logged-in user se automatically set hoga
-    """
-    # 1. Check if issue exists
+    # 1. Check if issue exists (Tera logic perfect hai)
     issue_query = select(model.Issue).where(model.Issue.id == issue_id)
     issue_result = await db.execute(issue_query)
     issue = issue_result.scalars().first()
 
     if not issue:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Issue not found"
-        )
+        raise HTTPException(status_code=404, detail="Issue not found")
 
     # 2. Create new comment
     new_comment = model.Comment(
         content=comment.content, issue_id=issue_id, author_id=current_user.id
     )
-
     db.add(new_comment)
+
+    # --- NAYA PART: Activity Log add karo ---
+    comment_log = model.Activity(
+        issue_id=issue_id,
+        user_id=current_user.id,
+        attribute="comment",
+        old_value=None,
+        new_value=f"New comment added" # Ya fir: comment.content[:50]...
+    )
+    db.add(comment_log)
+    # ---------------------------------------
+
     await db.commit()
     await db.refresh(new_comment)
 
-    # 3. Load author relationship for response
+    # 3. Load author for response (Tera logic perfect hai)
     comment_query = (
         select(model.Comment)
         .options(selectinload(model.Comment.author))
         .where(model.Comment.id == new_comment.id)
     )
     result = await db.execute(comment_query)
-    comment_with_author = result.scalars().first()
-
-    return comment_with_author
-
+    return result.scalars().first()
 
 @router.get(
     "/", status_code=status.HTTP_200_OK, response_model=list[schemas.CommentOut]
