@@ -38,6 +38,13 @@ FastAPI-based backend for a Linear-like project management system with complete 
 - ✅ Project organization
 - ✅ Issue assignment to teams and projects
 
+### Attachments
+
+- ✅ File upload support (local storage)
+- ✅ Attach files to specific issues
+- ✅ Secure file validation (images, docs)
+- ✅ Complete CRUD for attachments
+
 ## Tech Stack
 
 - **FastAPI** - Modern Python web framework
@@ -141,6 +148,14 @@ Server will start at `http://127.0.0.1:8080`
 - `POST /projects/` - Create project
 - `GET /projects/` - Get all projects
 
+### Attachments
+
+- `POST /attachments/{issue_id}` - Upload file for an issue
+- `GET /attachments/issue/{issue_id}` - List all attachments for an issue
+- `GET /attachments/{attachment_id}` - Get attachment details
+- `PUT /attachments/{attachment_id}` - Update attachment filename
+- `DELETE /attachments/{attachment_id}` - Delete attachment (and file)
+
 ### Health Check
 
 - `GET /health` - Server health check
@@ -159,14 +174,18 @@ backend/
 │   │   ├── project.py            # Project model
 │   │   ├── issue.py              # Issue model
 │   │   ├── comment.py            # Comment model
-│   │   └── activity.py           # Activity model
+│   │   ├── activity.py           # Activity model
+│   │   └── attached.py           # Attachment model
+
 │   ├── routers/                  # API routes
 │   │   ├── auth.py               # Authentication routes
 │   │   ├── user.py               # User routes
 │   │   ├── issue.py              # Issue routes
 │   │   ├── comment.py            # Comment routes
 │   │   ├── team.py               # Team routes
-│   │   └── project.py            # Project routes
+│   │   ├── project.py            # Project routes
+│   │   └── attached.py           # Attachment routes
+
 │   ├── schemas/                  # Pydantic schemas (refactored)
 │   │   ├── __init__.py
 │   │   ├── user.py               # User schemas
@@ -174,7 +193,9 @@ backend/
 │   │   ├── project.py            # Project schemas
 │   │   ├── issue.py              # Issue schemas + Enums
 │   │   ├── comment.py            # Comment schemas
-│   │   └── activity.py           # Activity schemas
+│   │   ├── activity.py           # Activity schemas
+│   │   └── attached.py           # Attachment schemas
+
 │   ├── utils/
 │   │   └── __init__.py           # Utility functions
 │   ├── oauth2.py                 # JWT token handling
