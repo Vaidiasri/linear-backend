@@ -12,6 +12,7 @@ from .issue import (
     IssueCreate,
     IssueOut,
     IssueDetailOut,
+    IssueStats,
 )
 from .comment import CommentCreate, CommentOut
 from .activity import ActivityOut
@@ -46,6 +47,6 @@ __all__ = [
     "CommentOut",
     # Activity
     "ActivityOut",
-    #Attachmet 
-    "AttachmentOut"
+    # Attachmet
+    "AttachmentOut",
 ]
