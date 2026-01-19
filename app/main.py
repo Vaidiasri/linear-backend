@@ -11,6 +11,7 @@ from .routers import (
     team,
     project,
     comment,
+    attached,
 )  # 1. Apne naye router folder ko import karo
 
 
@@ -24,6 +25,7 @@ app.include_router(issue.router)
 app.include_router(team.router)
 app.include_router(project.router)
 app.include_router(comment.router)
+app.include_router(attached.router)
 
 
 # 2. Ek test route banao (Browser pe dikhega)

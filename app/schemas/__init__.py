@@ -15,6 +15,7 @@ from .issue import (
 )
 from .comment import CommentCreate, CommentOut
 from .activity import ActivityOut
+from .attached import AttachmentOut
 
 # Update IssueDetailOut with proper types now that imports are available
 from typing import TYPE_CHECKING
@@ -45,4 +46,6 @@ __all__ = [
     "CommentOut",
     # Activity
     "ActivityOut",
+    #Attachmet 
+    "AttachmentOut"
 ]

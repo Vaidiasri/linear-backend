@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from dotenv import load_dotenv
 from app.lib.database import Base
-from app.model import model  # Saare models import ho jayenge
+import app.model  # Saare models import ho jayenge
 
 # .env file load karo
 load_dotenv()
