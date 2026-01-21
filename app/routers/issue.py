@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.orm import selectinload
 from uuid import UUID
 from .. import schemas, model, utils, oauth2
@@ -172,6 +172,55 @@ async def get_all_issues(
     query = query.offset(skip).limit(limit)
 
     # 7. Execution
+    result = await db.execute(query)
+    issues = result.scalars().all()
+
+    return issues
+
+
+@router.get(
+    "/search", status_code=status.HTTP_200_OK, response_model=list[schemas.IssueOut]
+)
+async def search_issues(
+    q: str,
+    skip: int = 0,
+    limit: int = 20,
+    db: AsyncSession = Depends(get_db),
+    current_user: model.User = Depends(oauth2.get_current_user),
+):
+    """
+    Global search for issues.
+
+    Searches across all issues (ignoring creator restriction) where the title OR description
+    matches the search query (case-insensitive).
+
+    Args:
+        q: The search query string.
+        skip: Number of records to skip (pagination).
+        limit: Maximum number of records to return (pagination).
+        db: Database session.
+        current_user: Authenticated user.
+
+    Returns:
+        List of matching issues.
+    """
+    if not q:
+        return []
+
+    # Global search query - searches title OR description
+    # Note: We are deliberately NOT filtering by creator_id to allow "Global" search
+    query = (
+        select(model.Issue)
+        .where(
+            or_(
+                model.Issue.title.ilike(f"%{q}%"),
+                model.Issue.description.ilike(f"%{q}%"),
+            )
+        )
+        .offset(skip)
+        .limit(limit)
+    )
+
     result = await db.execute(query)
     issues = result.scalars().all()
 
