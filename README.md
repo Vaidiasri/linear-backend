@@ -131,7 +131,9 @@ Server will start at `http://127.0.0.1:8080`
 - `team_id` - Filter by team
 - `project_id` - Filter by project
 - `assignee_id` - Filter by assignee
-- `search` - Search in title
+
+- `GET /issues/search` - Global search for issues
+  - `q` - Search query (searches title and description)
 
 ### Comments
 
@@ -254,6 +256,8 @@ GET `/issues/{id}` returns:
 
 ### Error Handling
 
+- Global exception handler for uncaught errors
+- Automatic error logging to `app.log`
 - Comprehensive try-except blocks
 - Database rollback on errors
 - Meaningful error messages
