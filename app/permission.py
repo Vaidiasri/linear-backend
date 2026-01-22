@@ -1,7 +1,7 @@
-# app/permissions.py
 from fastapi import HTTPException, status
-from app.model.user import User, UserRole
 from typing import Optional, Any
+from app.model.user import User
+from app.policies import POLICIES
 
 
 def check_permission(
@@ -11,22 +11,11 @@ def check_permission(
     resource: Optional[Any] = None,
 ) -> bool:
     """
-    Check if user has permission to perform an action on a resource.
+    Check if user has permission to perform an action on a resource using generic policies.
 
-    Args:
-        user: Authenticated user object
-        resource_type: Type of resource ("issue", "project", etc.)
-        action: Action to perform ("create", "read", "update", "delete")
-        resource: The resource object being accessed (optional)
-
-    Returns:
-        bool: True if permission granted
-
-    Raises:
-        HTTPException: 403 Forbidden if permission denied
-
-    Note:
-        For TEAM_LEAD checks, ensure resource.project is eagerly loaded
+    The engine iterates through POLICIES defined in app.policies.
+    If ANY policy allows the action (returns True), access is GRANTED.
+    If NO policy allows the action, access is DENIED.
     """
 
     # --- Input Validation ---
@@ -41,72 +30,37 @@ def check_permission(
             detail="Invalid resource_type or action",
         )
 
-    # --- ADMIN: God Mode ---
-    if user.role == UserRole.ADMIN:
+    # Construct the target action key (e.g., "issue:create")
+    target_action = f"{resource_type}:{action}"
+
+    # --- Policy Evaluation Engine ---
+    allowed = False
+
+    for policy in POLICIES:
+        policy_action = policy["action"]
+
+        # Check if policy applies to this action (Exact match or Wildcard)
+        if policy_action == "*" or policy_action == target_action:
+
+            # Execute Condition
+            # Catch errors in condition to be safe (e.g. AttributeError)
+            try:
+                if policy["condition"](user, resource):
+                    allowed = True
+                    break  # Short-circuit: Access Granted
+            except Exception:
+                continue  # If condition fails logic, ignore this policy
+
+    if allowed:
         return True
 
-    # --- TEAM LEAD Logic ---
-    if user.role == UserRole.TEAM_LEAD:
-        if resource_type == "issue" and action in ["create", "update", "delete"]:
-            # Check if issue belongs to a project assigned to user's team
-            if resource:
-                # Safely access nested attributes
-                project = getattr(resource, "project", None)
-                if project is None:
-                    return False
-                team_id = getattr(project, "team_id", None)
-                if team_id == user.team_id:
-                    return True
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to perform this action",
-            )
-
-        # Team Leads CAN read issues from their team
-        if resource_type == "issue" and action == "read":
-            if resource:
-                project = getattr(resource, "project", None)
-                if project and getattr(project, "team_id", None) == user.team_id:
-                    return True
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to perform this action",
-            )
-
-        # Team Leads CANNOT create projects
-        if resource_type == "project" and action == "create":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Team Leads cannot create projects",
-            )
-
-    # --- MEMBER Logic ---
-    if user.role == UserRole.MEMBER:
-        # Can create issues
-        if resource_type == "issue" and action == "create":
-            return True
-
-        # Can read issues
-        if resource_type == "issue" and action == "read":
-            return True
-
-        # Can update own issues
-        if resource_type == "issue" and action == "update":
-            if resource and getattr(resource, "created_by_id", None) == user.id:
-                return True
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only update your own issues",
-            )
-
-        # Cannot delete issues
-        if resource_type == "issue" and action == "delete":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to delete issues",
-            )
+    # --- Deny ---
+    # We can try to provide context-aware error messages if needed,
+    # but for pure PBAC, a generic message is standard.
+    # To maintain some backward compatibility with previous error messages:
+    detail_msg = "You do not have permission to perform this action"
 
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="You do not have permission to perform this action",
+        detail=detail_msg,
     )
