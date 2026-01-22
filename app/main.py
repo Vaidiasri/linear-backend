@@ -17,6 +17,9 @@ from .routers import (
 )  # 1. Apne naye router folder ko import karo
 
 
+from fastapi.staticfiles import StaticFiles
+import os
+
 # 0. Setup Logging
 logging.basicConfig(
     filename="app.log",
@@ -28,6 +31,12 @@ logging.basicConfig(
 
 # 1. App ko initialize karo
 app = FastAPI(title="Linear Clone API")
+
+# Ensure static directory exists
+os.makedirs("static", exist_ok=True)
+
+# Mount Static Files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 # 2. Ye line sabse important hai!
 # Isse saare signup routes main app se connect ho jayenge.
 app.include_router(user.router)

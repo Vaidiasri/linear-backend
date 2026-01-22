@@ -6,6 +6,7 @@ from app.model.user import UserRole
 class UserBase(BaseModel):
     full_name: str | None = None
     email: EmailStr
+    avatar_url: str | None = None
 
 
 class UserCreate(UserBase):
@@ -14,6 +15,7 @@ class UserCreate(UserBase):
 
 class UserOut(UserBase):
     id: UUID
+    avatar_url: str | None = None
 
     class Config:
         from_attributes = True
