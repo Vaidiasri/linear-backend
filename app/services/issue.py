@@ -91,14 +91,31 @@ class IssueService:
         limit: int = 10,
         current_user: model.User,
     ) -> List[model.Issue]:
+        creator_id = None
+        team_id = filters.team_id
+
+        # RBAC Logic
+        if current_user.role != model.UserRole.ADMIN:
+            # If not Admin, restrict to user's team?
+            # Or if Member, restrict to own team.
+            # Assuming Team Lead and Member can see Team Issues.
+            # If user has no team, they see nothing?
+            if current_user.team_id:
+                team_id = current_user.team_id
+            else:
+                # Fallback to own created if no team?
+                # Or return empty?
+                # Let's restrict to creator_id if no team assigned.
+                creator_id = current_user.id
+
         return await crud.issue.get_multi_by_owner(
             db,
-            creator_id=current_user.id,
+            creator_id=creator_id,
             skip=skip,
             limit=limit,
             status=filters.status,
             priority=filters.priority,
-            team_id=filters.team_id,
+            team_id=team_id,
             project_id=filters.project_id,
             assignee_id=filters.assignee_id,
             search=filters.search,
@@ -109,13 +126,12 @@ class IssueService:
         db: AsyncSession, *, id: UUID, current_user: model.User
     ) -> model.Issue:
         # get with relations
-        issue = await crud.issue.get_with_relations(
-            db, id=id, creator_id=current_user.id
-        )
+        # We pass creator_id=None because we handle permission check in Router
+        issue = await crud.issue.get_with_relations(db, id=id, creator_id=None)
         if not issue:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Issue not found or you don't have access",
+                detail="Issue not found",
             )
         return issue
 
@@ -129,11 +145,12 @@ class IssueService:
     ) -> model.Issue:
         # 1. Get existing issue
         issue = await crud.issue.get(db, id)
-        if not issue or issue.creator_id != current_user.id:
+        if not issue:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Issue not found or you are not the owner",
+                detail="Issue not found",
             )
+        # Permission checked in Router
 
         # 2. Validate entities if changed
         await IssueService.validate_issue_entities(
@@ -174,11 +191,12 @@ class IssueService:
     @staticmethod
     async def delete(db: AsyncSession, *, id: UUID, current_user: model.User) -> None:
         issue = await crud.issue.get(db, id)
-        if not issue or issue.creator_id != current_user.id:
+        if not issue:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Issue not found or you are not the owner",
+                detail="Issue not found",
             )
+        # Permission checked in Router
         await crud.issue.remove(db, id=id)
 
     @staticmethod
@@ -189,18 +207,38 @@ class IssueService:
 
     @staticmethod
     async def get_stats(db: AsyncSession, *, current_user: model.User) -> dict:
-        return await crud.issue.get_stats(db, creator_id=current_user.id)
+        creator_id = None
+        if current_user.role != model.UserRole.ADMIN:
+            # Basic stat logic: Show stats for own created issues if not admin?
+            # Or team stats? Consistency with get_all.
+            # Let's stick to creator_id for stats for now as stats usually personal,
+            # UNLESS we want team stats.
+            # User Request was "Implement RBAC".
+            # Let's default to creator_id for stats for Member/TL to show "My Issues".
+            # Admin sees all.
+            creator_id = current_user.id
+
+        return await crud.issue.get_stats(db, creator_id=creator_id)
 
     @staticmethod
     async def export_csv(
         db: AsyncSession, *, filters: IssueFilters, current_user: model.User
     ) -> StreamingResponse:
+        creator_id = None
+        team_id = filters.team_id
+
+        if current_user.role != model.UserRole.ADMIN:
+            if current_user.team_id:
+                team_id = current_user.team_id
+            else:
+                creator_id = current_user.id
+
         issues = await crud.issue.get_all_for_export(
             db,
-            creator_id=current_user.id,
+            creator_id=creator_id,
             status=filters.status,
             priority=filters.priority,
-            team_id=filters.team_id,
+            team_id=team_id,
             project_id=filters.project_id,
             assignee_id=filters.assignee_id,
             search=filters.search,

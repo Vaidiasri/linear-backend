@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
+from app.model.user import UserRole
 
 
 class UserBase(BaseModel):
@@ -16,3 +17,8 @@ class UserOut(UserBase):
 
     class Config:
         from_attributes = True
+
+
+class UserUpdateRole(BaseModel):
+    role: UserRole
+    team_id: UUID | None = None

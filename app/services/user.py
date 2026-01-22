@@ -36,3 +36,31 @@ class UserService:
     @staticmethod
     async def get_by_email(db: AsyncSession, email: str) -> Optional[model.User]:
         return await crud.user.get_by_email(db, email=email)
+
+    @staticmethod
+    async def update_role(
+        db: AsyncSession, user_id: str, role: str, team_id: Optional[str] = None
+    ) -> model.User:
+        # Check if user exists
+        user = await crud.user.get(db, id=user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+
+        # If team_id is provided, validate it
+        if team_id:
+            team = await crud.team.get(db, id=team_id)
+            if not team:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
+                )
+
+        # Update
+        user.role = role
+        user.team_id = team_id
+
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        return user

@@ -18,7 +18,7 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
         self,
         db: AsyncSession,
         *,
-        creator_id: UUID,
+        creator_id: Optional[UUID] = None,
         skip: int = 0,
         limit: int = 100,
         status: Optional[str] = None,
@@ -28,7 +28,9 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
         assignee_id: Optional[UUID] = None,
         search: Optional[str] = None,
     ) -> List[Issue]:
-        query = select(self.model).where(self.model.creator_id == creator_id)
+        query = select(self.model)
+        if creator_id:
+            query = query.where(self.model.creator_id == creator_id)
 
         if status:
             query = query.where(self.model.status == status)
@@ -48,16 +50,17 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
         return result.scalars().all()
 
     async def get_with_relations(
-        self, db: AsyncSession, *, id: UUID, creator_id: UUID
+        self, db: AsyncSession, *, id: UUID, creator_id: Optional[UUID] = None
     ) -> Optional[Issue]:
-        query = (
-            select(self.model)
-            .where(self.model.id == id, self.model.creator_id == creator_id)
-            .options(
-                selectinload(self.model.comments).selectinload("author"),
-                selectinload(self.model.activities).selectinload("user"),
-            )
+        query = select(self.model).where(self.model.id == id)
+        if creator_id:
+            query = query.where(self.model.creator_id == creator_id)
+
+        query = query.options(
+            selectinload(self.model.comments).selectinload("author"),
+            selectinload(self.model.activities).selectinload("user"),
         )
+
         result = await db.execute(query)
         return result.scalars().first()
 
@@ -65,7 +68,7 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
         self,
         db: AsyncSession,
         *,
-        creator_id: UUID,
+        creator_id: Optional[UUID] = None,
         status: Optional[str] = None,
         priority: Optional[int] = None,
         team_id: Optional[UUID] = None,
@@ -73,14 +76,14 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
         assignee_id: Optional[UUID] = None,
         search: Optional[str] = None,
     ) -> List[Issue]:
-        query = (
-            select(self.model)
-            .where(self.model.creator_id == creator_id)
-            .options(
-                selectinload(self.model.assignee),
-                selectinload(self.model.project),
-                selectinload(self.model.team),
-            )
+        query = select(self.model)
+        if creator_id:
+            query = query.where(self.model.creator_id == creator_id)
+
+        query = query.options(
+            selectinload(self.model.assignee),
+            selectinload(self.model.project),
+            selectinload(self.model.team),
         )
 
         if status:
@@ -118,20 +121,23 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
         result = await db.execute(query)
         return result.scalars().all()
 
-    async def get_stats(self, db: AsyncSession, *, creator_id: UUID) -> dict:
-        total_query = select(func.count(self.model.id)).where(
-            self.model.creator_id == creator_id
+    async def get_stats(
+        self, db: AsyncSession, *, creator_id: Optional[UUID] = None
+    ) -> dict:
+        total_query = select(func.count(self.model.id))
+
+        status_query = select(self.model.status, func.count(self.model.id)).group_by(
+            self.model.status
         )
-        status_query = (
-            select(self.model.status, func.count(self.model.id))
-            .where(self.model.creator_id == creator_id)
-            .group_by(self.model.status)
-        )
-        priority_query = (
-            select(self.model.priority, func.count(self.model.id))
-            .where(self.model.creator_id == creator_id)
-            .group_by(self.model.priority)
-        )
+
+        priority_query = select(
+            self.model.priority, func.count(self.model.id)
+        ).group_by(self.model.priority)
+
+        if creator_id:
+            total_query = total_query.where(self.model.creator_id == creator_id)
+            status_query = status_query.where(self.model.creator_id == creator_id)
+            priority_query = priority_query.where(self.model.creator_id == creator_id)
 
         import asyncio
 
