@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
 from .. import schemas, model, oauth2
+from app.permission import check_permission
 from ..lib.database import get_db
 from ..services.issue import IssueService
 from ..filters import IssueFilters
@@ -21,6 +22,7 @@ async def create_issue(
     Create a new issue.
     Delegates to IssueService.create
     """
+    check_permission(current_user, "issue", "create")
     return await IssueService.create(db, issue_in=issue, current_user=current_user)
 
 
@@ -83,7 +85,9 @@ async def get_issue_by_id(
     Get detailed information about a specific issue.
     Delegates to IssueService.get
     """
-    return await IssueService.get(db, id=id, current_user=current_user)
+    issue = await IssueService.get(db, id=id, current_user=current_user)
+    check_permission(current_user, "issue", "read", resource=issue)
+    return issue
 
 
 @router.put("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.IssueOut)
@@ -97,6 +101,10 @@ async def update_issue(
     Update an existing issue.
     Delegates to IssueService.update
     """
+    # Fetch first to check permission
+    issue = await IssueService.get(db, id=id, current_user=current_user)
+    check_permission(current_user, "issue", "update", resource=issue)
+
     return await IssueService.update(
         db, id=id, issue_in=updated_issue, current_user=current_user
     )
@@ -112,6 +120,10 @@ async def delete_issue(
     Delete an issue.
     Delegates to IssueService.delete
     """
+    # Fetch first to check permission
+    issue = await IssueService.get(db, id=id, current_user=current_user)
+    check_permission(current_user, "issue", "delete", resource=issue)
+
     await IssueService.delete(db, id=id, current_user=current_user)
     return None
 

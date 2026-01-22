@@ -2,7 +2,7 @@
 Schemas package - Pydantic models for request/response validation
 """
 
-from .user import UserBase, UserCreate, UserOut
+from .user import UserBase, UserCreate, UserOut, UserUpdateRole
 from .team import TeamCreate, TeamOut
 from .project import ProjectCreate, ProjectOut
 from .issue import (
@@ -29,6 +29,7 @@ __all__ = [
     "UserBase",
     "UserCreate",
     "UserOut",
+    "UserUpdateRole",
     # Team
     "TeamCreate",
     "TeamOut",
