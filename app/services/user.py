@@ -64,3 +64,15 @@ class UserService:
         await db.commit()
         await db.refresh(user)
         return user
+# api for update user avatar
+    @staticmethod
+    async def update_avatar(db: AsyncSession, user_id: str, avatar: str) -> model.User:
+        # Check if user exists
+        user = await crud.user.get(db, id=user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        user.avatar_url = avatar
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        return user

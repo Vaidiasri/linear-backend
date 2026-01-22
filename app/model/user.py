@@ -24,6 +24,7 @@ class User(Base):
     # Add New Columns
     role = Column(SQLAlchemyEnum(UserRole), default=UserRole.MEMBER, nullable=False)
     team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id"), nullable=True)
+    avatar_url = Column(String, nullable=True)
 
     # Relationships
     created_issues = relationship(

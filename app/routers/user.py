@@ -1,12 +1,52 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
+import shutil
+import os
 from app.model.user import UserRole
 from .. import schemas, model, oauth2
 from ..lib.database import get_db
 from ..services.user import UserService
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+UPLOAD_DIR = "static/avatars"
+
+
+@router.get("/me", response_model=schemas.UserOut)
+async def get_my_profile(current_user: model.User = Depends(oauth2.get_current_user)):
+    return current_user
+
+
+@router.post("/me/avatar", response_model=schemas.UserOut)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: model.User = Depends(oauth2.get_current_user),
+):
+    # Ensure directory exists
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+    # Create file path: static/avatars/user_id_filename
+    # Sanitize filename to avoid directory traversal
+    filename = f"{current_user.id}_{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Update User Profile
+    # Storing relative path, assuming frontend prepends API base URL or backend serves it
+    # Using forward slashes for URL compatibility
+    avatar_url = f"/static/avatars/{filename}"
+
+    current_user.avatar_url = avatar_url
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+
+    return current_user
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
