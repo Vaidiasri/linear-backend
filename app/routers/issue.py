@@ -1,4 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.responses import StreamingResponse
+import csv
+import io
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
@@ -176,6 +179,91 @@ async def get_all_issues(
     issues = result.scalars().all()
 
     return issues
+
+
+@router.get("/export", status_code=status.HTTP_200_OK)
+async def export_issues(
+    status_filter: str | None = None,
+    priority: int | None = None,
+    team_id: UUID | None = None,
+    project_id: UUID | None = None,
+    assignee_id: UUID | None = None,
+    search: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: model.User = Depends(oauth2.get_current_user),
+):
+    """
+    Export filtered issues to a CSV file.
+    Same filtering logic as get_all_issues.
+    """
+    # 1. Base query (Reuse filtering logic)
+    query = (
+        select(model.Issue)
+        .where(model.Issue.creator_id == current_user.id)
+        .options(
+            selectinload(model.Issue.assignee),
+            selectinload(model.Issue.project),
+            selectinload(model.Issue.team),
+        )
+    )
+
+    if status_filter:
+        query = query.where(model.Issue.status == status_filter)
+    if priority is not None:
+        query = query.where(model.Issue.priority == priority)
+    if team_id:
+        query = query.where(model.Issue.team_id == team_id)
+    if project_id:
+        query = query.where(model.Issue.project_id == project_id)
+    if assignee_id:
+        query = query.where(model.Issue.assignee_id == assignee_id)
+    if search:
+        query = query.where(model.Issue.title.ilike(f"%{search}%"))
+
+    # Execute query
+    result = await db.execute(query)
+    issues = result.scalars().all()
+
+    # 2. Create CSV in Memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Write Header
+    writer.writerow(
+        [
+            "ID",
+            "Title",
+            "Status",
+            "Priority",
+            "Assignee",
+            "Project",
+            "Team",
+            "Created At",
+        ]
+    )
+
+    # Write Data Rows
+    for issue in issues:
+        writer.writerow(
+            [
+                issue.identifier,
+                issue.title,
+                issue.status,
+                issue.priority,
+                issue.assignee.email if issue.assignee else "Unassigned",
+                issue.project.name if issue.project else "No Project",
+                issue.team.name if issue.team else "No Team",
+                issue.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            ]
+        )
+
+    # 3. Prepare for download
+    output.seek(0)
+    return StreamingResponse(
+        content=output,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=issues_report.csv"},
+    )
 
 
 @router.get(
