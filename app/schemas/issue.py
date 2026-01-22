@@ -32,6 +32,9 @@ class IssueBase(BaseModel):
     assignee_id: Optional[UUID] = None
 
 
+# make  the  single  search  api
+
+
 class IssueCreate(IssueBase):
     pass
 
@@ -62,8 +65,10 @@ class IssueDetailOut(IssueBase):
 
     class Config:
         from_attributes = True
-# Issue  state  schema 
+
+
+# Issue  state  schema
 class IssueStats(BaseModel):
-    total_count:int
-    status_counts:dict[str,int]
-    priority_counts:dict[str,int]
+    total_count: int
+    status_counts: dict[str, int]
+    priority_counts: dict[str, int]
