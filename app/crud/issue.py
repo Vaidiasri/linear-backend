@@ -1,0 +1,157 @@
+from typing import List, Optional
+from uuid import UUID
+
+from sqlalchemy import select, or_, func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.crud.base import CRUDBase
+from app.model.issue import Issue
+from app.schemas.issue import (
+    IssueCreate,
+    IssueCreate as IssueUpdate,
+)  # Reuse schema for now
+
+
+class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
+    async def get_multi_by_owner(
+        self,
+        db: AsyncSession,
+        *,
+        creator_id: UUID,
+        skip: int = 0,
+        limit: int = 100,
+        status: Optional[str] = None,
+        priority: Optional[int] = None,
+        team_id: Optional[UUID] = None,
+        project_id: Optional[UUID] = None,
+        assignee_id: Optional[UUID] = None,
+        search: Optional[str] = None,
+    ) -> List[Issue]:
+        query = select(self.model).where(self.model.creator_id == creator_id)
+
+        if status:
+            query = query.where(self.model.status == status)
+        if priority is not None:
+            query = query.where(self.model.priority == priority)
+        if team_id:
+            query = query.where(self.model.team_id == team_id)
+        if project_id:
+            query = query.where(self.model.project_id == project_id)
+        if assignee_id:
+            query = query.where(self.model.assignee_id == assignee_id)
+        if search:
+            query = query.where(self.model.title.ilike(f"%{search}%"))
+
+        query = query.offset(skip).limit(limit)
+        result = await db.execute(query)
+        return result.scalars().all()
+
+    async def get_with_relations(
+        self, db: AsyncSession, *, id: UUID, creator_id: UUID
+    ) -> Optional[Issue]:
+        query = (
+            select(self.model)
+            .where(self.model.id == id, self.model.creator_id == creator_id)
+            .options(
+                selectinload(self.model.comments).selectinload("author"),
+                selectinload(self.model.activities).selectinload("user"),
+            )
+        )
+        result = await db.execute(query)
+        return result.scalars().first()
+
+    async def get_all_for_export(
+        self,
+        db: AsyncSession,
+        *,
+        creator_id: UUID,
+        status: Optional[str] = None,
+        priority: Optional[int] = None,
+        team_id: Optional[UUID] = None,
+        project_id: Optional[UUID] = None,
+        assignee_id: Optional[UUID] = None,
+        search: Optional[str] = None,
+    ) -> List[Issue]:
+        query = (
+            select(self.model)
+            .where(self.model.creator_id == creator_id)
+            .options(
+                selectinload(self.model.assignee),
+                selectinload(self.model.project),
+                selectinload(self.model.team),
+            )
+        )
+
+        if status:
+            query = query.where(self.model.status == status)
+        if priority is not None:
+            query = query.where(self.model.priority == priority)
+        if team_id:
+            query = query.where(self.model.team_id == team_id)
+        if project_id:
+            query = query.where(self.model.project_id == project_id)
+        if assignee_id:
+            query = query.where(self.model.assignee_id == assignee_id)
+        if search:
+            query = query.where(self.model.title.ilike(f"%{search}%"))
+
+        result = await db.execute(query)
+        return result.scalars().all()
+
+    async def search_global(
+        self, db: AsyncSession, *, q: str, skip: int = 0, limit: int = 100
+    ) -> List[Issue]:
+        if not q:
+            return []
+        query = (
+            select(self.model)
+            .where(
+                or_(
+                    self.model.title.ilike(f"%{q}%"),
+                    self.model.description.ilike(f"%{q}%"),
+                )
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await db.execute(query)
+        return result.scalars().all()
+
+    async def get_stats(self, db: AsyncSession, *, creator_id: UUID) -> dict:
+        total_query = select(func.count(self.model.id)).where(
+            self.model.creator_id == creator_id
+        )
+        status_query = (
+            select(self.model.status, func.count(self.model.id))
+            .where(self.model.creator_id == creator_id)
+            .group_by(self.model.status)
+        )
+        priority_query = (
+            select(self.model.priority, func.count(self.model.id))
+            .where(self.model.creator_id == creator_id)
+            .group_by(self.model.priority)
+        )
+
+        import asyncio
+
+        total_task = db.execute(total_query)
+        status_task = db.execute(status_query)
+        priority_task = db.execute(priority_query)
+
+        total_result, status_result, priority_result = await asyncio.gather(
+            total_task, status_task, priority_task
+        )
+
+        total_count = total_result.scalar() or 0
+        status_counts = {row[0]: row[1] for row in status_result.all()}
+        priority_counts = {row[0]: row[1] for row in priority_result.all()}
+
+        return {
+            "total_count": total_count,
+            "status_counts": status_counts,
+            "priority_counts": priority_counts,
+        }
+
+
+issue = CRUDIssue(Issue)

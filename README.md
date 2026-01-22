@@ -18,6 +18,7 @@ FastAPI-based backend for a Linear-like project management system with complete 
 - ✅ Advanced filtering (status, priority, team, project, assignee, search)
 - ✅ Activity logging for all changes
 - ✅ Assignee management
+- ✅ Export issues to CSV with filters
 
 ### Comments
 
@@ -44,6 +45,14 @@ FastAPI-based backend for a Linear-like project management system with complete 
 - ✅ Attach files to specific issues
 - ✅ Secure file validation (images, docs)
 - ✅ Complete CRUD for attachments
+
+## Architecture
+
+We use a **Service-Repository Pattern** to separate concerns:
+
+- **Routers**: Handle HTTP requests and response.
+- **Services**: Handle business logic and validation.
+- **CRUD/Repositories**: Handle direct database operations.
 
 ## Tech Stack
 
@@ -134,6 +143,8 @@ Server will start at `http://127.0.0.1:8080`
 
 - `GET /issues/search` - Global search for issues
   - `q` - Search query (searches title and description)
+- `GET /issues/export` - Export issues to CSV
+  - Supports all filters (status, priority, team, project, assignee)
 
 ### Comments
 
@@ -169,7 +180,14 @@ backend/
 ├── app/
 │   ├── lib/
 │   │   └── database.py           # Database configuration
+│   ├── crud/                     # CRUD operations (New)
+│   │   ├── base.py
+│   │   └── issue.py
+│   ├── services/                 # Business logic (New)
+│   │   └── issue.py
+│   ├── filters.py                # Reusable filters
 │   ├── model/                    # SQLAlchemy models (refactored)
+
 │   │   ├── __init__.py
 │   │   ├── user.py               # User model
 │   │   ├── team.py               # Team model
