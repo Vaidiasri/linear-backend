@@ -11,6 +11,8 @@ from ..services.user import UserService
 router = APIRouter(prefix="/users", tags=["Users"])
 
 UPLOAD_DIR = "static/avatars"
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
 @router.get("/me", response_model=schemas.UserOut)
@@ -24,22 +26,60 @@ async def upload_avatar(
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
+    # 1. Validate File Extension & Content Type
+    filename_lower = file.filename.lower() if file.filename else ""
+    extension = filename_lower.split(".")[-1] if "." in filename_lower else ""
+
+    if extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File type not allowed. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}",
+        )
+
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="File must be an image"
+        )
+
     # Ensure directory exists
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
     # Create file path: static/avatars/user_id_filename
-    # Sanitize filename to avoid directory traversal
-    filename = f"{current_user.id}_{file.filename}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
+    # Sanitize filename to avoid directory traversal (using just the basename logic mostly covered by split above, but let's be safe)
+    safe_filename = os.path.basename(file.filename)
+    # prepend user id to ensure uniqueness and simple sanitization
+    final_filename = f"{current_user.id}_{safe_filename}"
+    file_path = os.path.join(UPLOAD_DIR, final_filename)
 
-    # Save file
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # 2. Stream & Validate Size
+    file_size = 0
+
+    try:
+        with open(file_path, "wb") as buffer:
+            while chunk := await file.read(1024 * 1024):  # Read 1MB chunks
+                file_size += len(chunk)
+                if file_size > MAX_AVATAR_SIZE:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"File too large. Maximum size allowed is {MAX_AVATAR_SIZE // (1024 * 1024)}MB",
+                    )
+                buffer.write(chunk)
+
+    except HTTPException:
+        # Cleanup partial file
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise
+    except Exception as e:
+        # Cleanup on any other error
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
     # Update User Profile
     # Storing relative path, assuming frontend prepends API base URL or backend serves it
     # Using forward slashes for URL compatibility
-    avatar_url = f"/static/avatars/{filename}"
+    avatar_url = f"/static/avatars/{final_filename}"
 
     current_user.avatar_url = avatar_url
     db.add(current_user)
