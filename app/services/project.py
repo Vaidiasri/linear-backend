@@ -16,6 +16,14 @@ class ProjectService:
         return await crud.project.get_multi(db, skip=skip, limit=limit)
 
     @staticmethod
+    async def get_by_team(
+        db: AsyncSession, team_id: UUID, skip: int = 0, limit: int = 100
+    ) -> List[model.Project]:
+        return await crud.project.get_multi_by_owner(
+            db, owner_id=team_id, skip=skip, limit=limit, owner_field="team_id"
+        )
+
+    @staticmethod
     async def get(db: AsyncSession, id: UUID) -> model.Project:
         project = await crud.project.get(db, id=id)
         if not project:

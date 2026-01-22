@@ -1,8 +1,12 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from typing import List
 from uuid import UUID
-from fastapi import APIRouter, status, Depends
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from .. import schemas, model, oauth2
+
+from app.model.user import UserRole
+
+from .. import model, oauth2, schemas
 from ..lib.database import get_db
 from ..services.project import ProjectService
 
@@ -10,13 +14,23 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
 @router.get(
-    "/", status_code=status.HTTP_200_OK, response_model=list[schemas.ProjectOut]
+    "/", status_code=status.HTTP_200_OK, response_model=List[schemas.ProjectOut]
 )
 async def get_projects(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
-    return await ProjectService.get_all(db)
+    if current_user.role == UserRole.ADMIN:
+        return await ProjectService.get_all(db, skip=skip, limit=limit)
+
+    if current_user.team_id:
+        return await ProjectService.get_by_team(
+            db, team_id=current_user.team_id, skip=skip, limit=limit
+        )
+
+    return []
 
 
 @router.get("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.ProjectOut)
@@ -36,6 +50,12 @@ async def create_project(
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
+    # Strict Check
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Admins can create projects",
+        )
     return await ProjectService.create(db, project_in=project)
 
 
@@ -48,6 +68,12 @@ async def update_project(
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Admins can update projects",
+        )
+
     return await ProjectService.update(db, id=id, project_in=update_project)
 
 
@@ -57,5 +83,10 @@ async def delete_project(
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Admins can delete projects",
+        )
     await ProjectService.delete(db, id=id)
     return None
