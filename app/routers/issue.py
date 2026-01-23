@@ -8,6 +8,8 @@ from app.permission import check_permission
 from ..lib.database import get_db
 from ..services.issue import IssueService
 from ..filters import IssueFilters
+from app.connectionManager import connection_manager
+import json
 
 router = APIRouter(prefix="/issues", tags=["Issues"])
 
@@ -23,7 +25,25 @@ async def create_issue(
     Delegates to IssueService.create
     """
     check_permission(current_user, "issue", "create")
-    return await IssueService.create(db, issue_in=issue, current_user=current_user)
+    new_issue = await IssueService.create(db, issue_in=issue, current_user=current_user)
+
+    # Broadcast notification
+    if new_issue.team_id:
+        await connection_manager.broadcast(
+            new_issue.team_id,
+            json.dumps(
+                {
+                    "event": "ISSUE_CREATED",
+                    "issue_id": str(new_issue.id),
+                    "title": new_issue.title,
+                    "project_id": (
+                        str(new_issue.project_id) if new_issue.project_id else None
+                    ),
+                }
+            ),
+        )
+
+    return new_issue
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[schemas.IssueOut])
@@ -105,9 +125,24 @@ async def update_issue(
     issue = await IssueService.get(db, id=id, current_user=current_user)
     check_permission(current_user, "issue", "update", resource=issue)
 
-    return await IssueService.update(
+    updated = await IssueService.update(
         db, id=id, issue_in=updated_issue, current_user=current_user
     )
+
+    # Broadcast notification
+    if updated.team_id:
+        await connection_manager.broadcast(
+            updated.team_id,
+            json.dumps(
+                {
+                    "event": "ISSUE_UPDATED",
+                    "issue_id": str(updated.id),
+                    "title": updated.title,
+                }
+            ),
+        )
+
+    return updated
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -125,6 +160,20 @@ async def delete_issue(
     check_permission(current_user, "issue", "delete", resource=issue)
 
     await IssueService.delete(db, id=id, current_user=current_user)
+
+    # Broadcast notification
+    if issue.team_id:
+        await connection_manager.broadcast(
+            issue.team_id,
+            json.dumps(
+                {
+                    "event": "ISSUE_DELETED",
+                    "issue_id": str(issue.id),
+                    "title": issue.title,
+                }
+            ),
+        )
+
     return None
 
 

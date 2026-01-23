@@ -15,6 +15,7 @@ from .routers import (
     comment,
     attached,
     dashboard,
+    websocket,
 )  # 1. Apne naye router folder ko import karo
 
 
@@ -48,6 +49,7 @@ app.include_router(project.router)
 app.include_router(comment.router)
 app.include_router(attached.router)
 app.include_router(dashboard.router)
+app.include_router(websocket.router)
 
 
 # Global Exception Handler
