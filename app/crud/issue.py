@@ -1,5 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
+import asyncio
 
 from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -138,8 +139,6 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
             total_query = total_query.where(self.model.creator_id == creator_id)
             status_query = status_query.where(self.model.creator_id == creator_id)
             priority_query = priority_query.where(self.model.creator_id == creator_id)
-
-        import asyncio
 
         total_task = db.execute(total_query)
         status_task = db.execute(status_query)
