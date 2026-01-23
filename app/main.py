@@ -14,6 +14,7 @@ from .routers import (
     project,
     comment,
     attached,
+    dashboard,
 )  # 1. Apne naye router folder ko import karo
 
 
@@ -46,6 +47,7 @@ app.include_router(team.router)
 app.include_router(project.router)
 app.include_router(comment.router)
 app.include_router(attached.router)
+app.include_router(dashboard.router)
 
 
 # Global Exception Handler

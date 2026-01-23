@@ -13,16 +13,12 @@ from .issue import (
     IssueOut,
     IssueDetailOut,
     IssueStats,
+    DashboardOut,
 )
 from .comment import CommentCreate, CommentOut
 from .activity import ActivityOut
 from .attached import AttachmentOut
-
-# Update IssueDetailOut with proper types now that imports are available
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    IssueDetailOut.model_rebuild()
+from .dashboard import DashboardOut
 
 __all__ = [
     # User
@@ -50,4 +46,6 @@ __all__ = [
     "ActivityOut",
     # Attachmet
     "AttachmentOut",
+    # Dashboard
+    "DashboardOut",
 ]
