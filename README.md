@@ -45,6 +45,21 @@ FastAPI-based backend for a Linear-like project management system with complete 
 - ✅ Attach files to specific issues
 - ✅ Secure file validation (images, docs)
 - ✅ Complete CRUD for attachments
+- ✅ Secure file validation (images, docs)
+
+### Dashboard Analytics
+
+- ✅ Real-time statistics
+- ✅ Status distribution charts
+- ✅ Priority breakdown
+- ✅ Team progress tracking
+
+### Real-time Updates (WebSockets)
+
+- ✅ Live issue updates (Create, Update, Delete)
+- ✅ Secure WebSocket authentication
+- ✅ Team-specific channels
+- ✅ Automatic connection management
 
 ## Architecture
 
@@ -169,6 +184,16 @@ Server will start at `http://127.0.0.1:8080`
 - `PUT /attachments/{attachment_id}` - Update attachment filename
 - `DELETE /attachments/{attachment_id}` - Delete attachment (and file)
 
+### Dashboard
+
+- `GET /dashboard/stats` - Get aggregated statistics (Status, Priority, Progress)
+
+### Real-time / WebSockets
+
+- `WS /ws?token={jwt_token}` - Establish WebSocket connection
+  - **Auth**: Token passed via Query Parameter
+  - **Events**: `ISSUE_CREATED`, `ISSUE_UPDATED`, `ISSUE_DELETED`
+
 ### Health Check
 
 - `GET /health` - Server health check
@@ -204,7 +229,10 @@ backend/
 │   │   ├── comment.py            # Comment routes
 │   │   ├── team.py               # Team routes
 │   │   ├── project.py            # Project routes
-│   │   └── attached.py           # Attachment routes
+│   │   ├── attached.py           # Attachment routes
+│   │   ├── dashboard.py          # Dashboard routes (New)
+│   │   └── websocket.py          # WebSocket routes (New)
+│   ├── connectionManager.py      # WebSocket connection manager (New)
 
 │   ├── schemas/                  # Pydantic schemas (refactored)
 │   │   ├── __init__.py
