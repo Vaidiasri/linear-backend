@@ -133,6 +133,178 @@ python main.py
 
 Server will start at `http://127.0.0.1:8080`
 
+## Docker Deployment 🐳
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) installed
+- [Docker Compose](https://docs.docker.com/compose/install/) installed
+
+### Quick Start with Docker
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/Vaidiasri/linear-backend.git
+   cd linear-backend
+   ```
+
+2. **Create environment file**
+
+   ```bash
+   # Copy the Docker environment template
+   cp .env.docker .env
+
+   # Edit .env and update these values:
+   # - POSTGRES_PASSWORD (use a strong password)
+   # - SECRET_KEY (generate with: openssl rand -hex 32)
+   ```
+
+3. **Build and start containers**
+
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Check container status**
+
+   ```bash
+   docker-compose ps
+   ```
+
+5. **View logs**
+
+   ```bash
+   # All services
+   docker-compose logs -f
+
+   # Backend only
+   docker-compose logs -f backend
+
+   # Database only
+   docker-compose logs -f postgres
+   ```
+
+6. **Access the application**
+   - API: `http://localhost:8080`
+   - Swagger Docs: `http://localhost:8080/docs`
+   - Health Check: `http://localhost:8080/health`
+
+### Docker Commands
+
+```bash
+# Start services
+docker-compose up -d
+
+# Stop services
+docker-compose down
+
+# Stop and remove volumes (⚠️ deletes all data)
+docker-compose down -v
+
+# Rebuild containers
+docker-compose up -d --build
+
+# View container logs
+docker-compose logs -f backend
+
+# Access backend container shell
+docker-compose exec backend bash
+
+# Access PostgreSQL shell
+docker-compose exec postgres psql -U linearuser -d lineardb
+
+# Run database migrations manually
+docker-compose exec backend alembic upgrade head
+```
+
+### Environment Variables for Docker
+
+| Variable                      | Description         | Default                |
+| ----------------------------- | ------------------- | ---------------------- |
+| `POSTGRES_USER`               | PostgreSQL username | `linearuser`           |
+| `POSTGRES_PASSWORD`           | PostgreSQL password | `linearpass`           |
+| `POSTGRES_DB`                 | Database name       | `lineardb`             |
+| `SECRET_KEY`                  | JWT secret key      | (change in production) |
+| `ALGORITHM`                   | JWT algorithm       | `HS256`                |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token expiry time   | `30`                   |
+
+### Docker Architecture
+
+- **Backend Container**: FastAPI application running on port 8080
+- **PostgreSQL Container**: Database running on port 5432
+- **Docker Network**: Isolated network for service communication
+- **Volumes**:
+  - `postgres_data`: Persistent database storage
+  - `./static`: Mounted for file uploads
+  - `./logs`: Mounted for application logs
+
+### Troubleshooting
+
+**Container won't start:**
+
+```bash
+# Check logs
+docker-compose logs backend
+
+# Rebuild from scratch
+docker-compose down -v
+docker-compose up -d --build
+```
+
+**Database connection error:**
+
+```bash
+# Check if PostgreSQL is ready
+docker-compose exec postgres pg_isready -U linearuser
+
+# Check database logs
+docker-compose logs postgres
+```
+
+**Migration errors:**
+
+```bash
+# Run migrations manually
+docker-compose exec backend alembic upgrade head
+
+# Check migration history
+docker-compose exec backend alembic current
+```
+
+**Port already in use:**
+
+```bash
+# Change ports in docker-compose.yml
+# For backend: "8081:8080" instead of "8080:8080"
+# For postgres: "5433:5432" instead of "5432:5432"
+```
+
+### Production Deployment
+
+For production deployment:
+
+1. **Update environment variables**
+   - Use strong passwords
+   - Generate secure SECRET_KEY: `openssl rand -hex 32`
+   - Set appropriate token expiry time
+
+2. **Use production-ready PostgreSQL**
+   - Consider managed database services (AWS RDS, Google Cloud SQL)
+   - Update `DATABASE_URL` in `.env`
+
+3. **Enable HTTPS**
+   - Use reverse proxy (Nginx, Traefik)
+   - Configure SSL certificates
+
+4. **Configure CORS**
+   - Update allowed origins in `app/main.py`
+
+5. **Monitor and backup**
+   - Set up log aggregation
+   - Configure automated database backups
+   - Monitor container health
+
 ## API Endpoints
 
 ### Authentication
