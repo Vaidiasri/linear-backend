@@ -25,6 +25,7 @@ async def get_current_user_ws(
     """
     credentials_exception = WebSocketDisconnect(code=status.WS_1008_POLICY_VIOLATION)
 
+
     user_id: str | None = None
     try:
         # Decode Token
