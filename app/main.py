@@ -18,6 +18,8 @@ from .routers import (
     websocket,
 )  # 1. Apne naye router folder ko import karo
 
+# Import V1 API router
+from .api.v1.api import api_router as api_v1_router
 
 from fastapi.staticfiles import StaticFiles
 import os
@@ -31,25 +33,38 @@ logging.basicConfig(
 )
 
 
-# 1. App ko initialize karo
-app = FastAPI(title="Linear Clone API")
+# 1. App ko initialize karo with enhanced metadata
+app = FastAPI(
+    title="Linear Backend API",
+    description="Project management system with versioned API",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
 # Ensure static directory exists
 os.makedirs("static", exist_ok=True)
 
 # Mount Static Files
 app.mount("/static", StaticFiles(directory="static"), name="static")
-# 2. Ye line sabse important hai!
-# Isse saare signup routes main app se connect ho jayenge.
-app.include_router(user.router)
-app.include_router(auth.router)
-app.include_router(issue.router)
-app.include_router(team.router)
-app.include_router(project.router)
-app.include_router(comment.router)
-app.include_router(attached.router)
-app.include_router(dashboard.router)
-app.include_router(websocket.router)
+
+# ============================================================================
+# API V1 - Recommended (Versioned Routes)
+# ============================================================================
+app.include_router(api_v1_router, prefix="/api/v1")
+
+# ============================================================================
+# Backward Compatibility - Deprecated (Will be removed in V2)
+# ============================================================================
+app.include_router(user.router, tags=["Users (Deprecated - Use /api/v1)"])
+app.include_router(auth.router, tags=["Auth (Deprecated - Use /api/v1)"])
+app.include_router(issue.router, tags=["Issues (Deprecated - Use /api/v1)"])
+app.include_router(team.router, tags=["Teams (Deprecated - Use /api/v1)"])
+app.include_router(project.router, tags=["Projects (Deprecated - Use /api/v1)"])
+app.include_router(comment.router, tags=["Comments (Deprecated - Use /api/v1)"])
+app.include_router(attached.router, tags=["Attachments (Deprecated - Use /api/v1)"])
+app.include_router(dashboard.router, tags=["Dashboard (Deprecated - Use /api/v1)"])
+app.include_router(websocket.router, tags=["WebSocket (Deprecated - Use /api/v1)"])
 
 
 # Global Exception Handler
@@ -65,7 +80,17 @@ async def global_exception_handler(request: Request, exc: Exception):
 # 2. Ek test route banao (Browser pe dikhega)
 @app.get("/")
 async def root():
-    return {"message": "Bhai, Linear Clone ka server ekdum mast chal raha hai!"}
+    return {
+        "message": "Linear Backend API",
+        "version": "v1",
+        "endpoints": {
+            "v1_api": "/api/v1",
+            "documentation": "/docs",
+            "redoc": "/redoc",
+            "health": "/health",
+        },
+        "note": "Use /api/v1/* endpoints for versioned API. Old endpoints are deprecated.",
+    }
 
 
 # 3. Ek aur route banao health check ke liye
