@@ -61,6 +61,18 @@ FastAPI-based backend for a Linear-like project management system with complete 
 - ✅ Team-specific channels
 - ✅ Automatic connection management
 
+### Email Workers (Background Jobs)
+
+- ✅ Asynchronous email processing with Celery
+- ✅ Automatic retry with exponential backoff
+- ✅ Welcome emails for new users
+- ✅ Password reset emails
+- ✅ Issue notification emails
+- ✅ Bulk email support
+- ✅ Scheduled tasks (daily reports, cleanup)
+- ✅ Monitoring with Flower UI
+- ✅ Redis-backed task queue
+
 ## Architecture
 
 We use a **Service-Repository Pattern** to separate concerns:
@@ -78,6 +90,9 @@ We use a **Service-Repository Pattern** to separate concerns:
 - **JWT** - Token-based authentication
 - **Pydantic** - Data validation
 - **Python-dotenv** - Environment variable management
+- **Celery** - Distributed task queue for background jobs
+- **Redis** - Message broker and result backend
+- **Flower** - Real-time Celery monitoring
 
 ## Setup
 
@@ -117,6 +132,11 @@ DATABASE_URL=postgresql+asyncpg://username:password@localhost/database_name
 SECRET_KEY=your-secret-key-here
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Redis Configuration (for Celery)
+REDIS_URL=redis://localhost:6379/0
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
 
 ### 5. Run database migrations
@@ -125,13 +145,40 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 alembic upgrade head
 ```
 
-### 6. Run the server
+### 6. Start Redis (for email workers)
+
+```bash
+# Using Docker (recommended)
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+
+# Or install Redis locally (see EMAIL_WORKER_GUIDE.md)
+```
+
+### 7. Run the server
 
 ```bash
 python main.py
 ```
 
 Server will start at `http://127.0.0.1:8080`
+
+### 8. Run Celery worker (optional, for email functionality)
+
+**Terminal 1 - Celery Worker:**
+
+```bash
+celery -A app.workers.celery_app worker --loglevel=info --pool=solo
+```
+
+**Terminal 2 - Flower Monitoring (optional):**
+
+```bash
+celery -A app.workers.celery_app flower --port=5555
+```
+
+Access Flower UI at: `http://localhost:5555`
+
+For complete email worker setup, see [`EMAIL_WORKER_GUIDE.md`](EMAIL_WORKER_GUIDE.md)
 
 ## Docker Deployment 🐳
 
@@ -366,6 +413,21 @@ For production deployment:
   - **Auth**: Token passed via Query Parameter
   - **Events**: `ISSUE_CREATED`, `ISSUE_UPDATED`, `ISSUE_DELETED`
 
+### Email Workers
+
+- `POST /test/send-email` - Test email sending (queues task)
+- `GET /tasks/{task_id}` - Check background task status
+
+**Available Email Tasks:**
+
+- Welcome emails (automatic on signup)
+- Password reset emails
+- Issue notifications
+- Bulk announcements
+- Daily reports (scheduled)
+
+See [`EMAIL_WORKER_GUIDE.md`](EMAIL_WORKER_GUIDE.md) for complete documentation.
+
 ### Health Check
 
 - `GET /health` - Server health check
@@ -382,6 +444,12 @@ backend/
 │   │   └── issue.py
 │   ├── services/                 # Business logic (New)
 │   │   └── issue.py
+│   ├── workers/                  # Background jobs (New)
+│   │   ├── __init__.py
+│   │   ├── celery_app.py         # Celery configuration
+│   │   ├── email_tasks.py        # Email tasks
+│   │   ├── email_templates.py    # Email templates
+│   │   └── example_usage.py      # Integration examples
 │   ├── filters.py                # Reusable filters
 │   ├── model/                    # SQLAlchemy models (refactored)
 
