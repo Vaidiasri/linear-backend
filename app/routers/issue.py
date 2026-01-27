@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
@@ -9,13 +9,16 @@ from ..lib.database import get_db
 from ..services.issue import IssueService
 from ..filters import IssueFilters
 from app.connectionManager import connection_manager
+from app.middleware.rate_limiter import limiter
 import json
 
 router = APIRouter(prefix="/issues", tags=["Issues"])
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.IssueOut)
+@limiter.limit("30/minute")  # Limit issue creation
 async def create_issue(
+    request: Request,
     issue: schemas.IssueCreate,
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
@@ -47,7 +50,9 @@ async def create_issue(
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[schemas.IssueOut])
+@limiter.limit("100/minute")  # Generous for reads
 async def get_all_issues(
+    request: Request,
     filters: IssueFilters = Depends(),
     skip: int = 0,
     limit: int = 10,
@@ -79,7 +84,9 @@ async def export_issues(
 @router.get(
     "/search", status_code=status.HTTP_200_OK, response_model=list[schemas.IssueOut]
 )
+@limiter.limit("50/minute")  # Moderate limit for search
 async def search_issues(
+    request: Request,
     q: str,
     skip: int = 0,
     limit: int = 20,

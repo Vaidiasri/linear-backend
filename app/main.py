@@ -21,6 +21,11 @@ from .routers import (
 # Import V1 API router
 from .api.v1.api import api_router as api_v1_router
 
+# Import rate limiting
+from .middleware.rate_limiter import limiter, rate_limit_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+
 from fastapi.staticfiles import StaticFiles
 import os
 
@@ -41,6 +46,10 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# Add rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 # Ensure static directory exists
 os.makedirs("static", exist_ok=True)
