@@ -13,7 +13,6 @@ from .issue import (
     IssueOut,
     IssueDetailOut,
     IssueStats,
-    DashboardOut,
 )
 from .comment import CommentCreate, CommentOut
 from .activity import ActivityOut
