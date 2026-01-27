@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 import shutil
@@ -7,6 +7,7 @@ from app.model.user import UserRole
 from .. import schemas, model, oauth2
 from ..lib.database import get_db
 from ..services.user import UserService
+from app.middleware.rate_limiter import limiter
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -16,12 +17,17 @@ MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
 @router.get("/me", response_model=schemas.UserOut)
-async def get_my_profile(current_user: model.User = Depends(oauth2.get_current_user)):
+@limiter.limit("100/minute")  # Generous for profile reads
+async def get_my_profile(
+    request: Request, current_user: model.User = Depends(oauth2.get_current_user)
+):
     return current_user
 
 
 @router.post("/me/avatar", response_model=schemas.UserOut)
+@limiter.limit("30/minute")  # Limit avatar uploads
 async def upload_avatar(
+    request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
@@ -90,7 +96,10 @@ async def upload_avatar(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
-async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")  # Limit user creation to prevent spam
+async def create_user(
+    request: Request, user: schemas.UserCreate, db: AsyncSession = Depends(get_db)
+):
     return await UserService.create(db, user_in=user)
 
 

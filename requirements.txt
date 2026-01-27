@@ -28,3 +28,4 @@ fastapi-mail==1.4.1
 celery==5.3.4
 redis==5.0.1
 flower==2.0.1
+slowapi==0.1.9
