@@ -1,67 +1,216 @@
 ---
-description: Automatically create branch, commit changes, and raise PR
+description: Professional PR workflow - commits only essential documentation files
 ---
 
-# Raise PR Workflow
+# Professional PR Workflow
 
-This workflow automates the entire Git workflow from creating a feature branch to raising a Pull Request.
+This workflow creates a professional Pull Request with only essential documentation and code files.
 
-## Steps:
-
-### 1. Check current Git status
+## Step 1: Check Current Status
 
 ```bash
 git status
 ```
 
-### 2. Create a feature branch
+## Step 2: Create Feature Branch
 
-- Branch naming convention: `feature/<descriptive-name>` or `fix/<issue-name>`
-- Example: `feature/add-blog-api` or `fix/database-connection`
+Branch naming convention:
+
+- `feature/celery-email-worker` - For new features
+- `fix/email-validation` - For bug fixes
+- `docs/api-documentation` - For documentation
 
 ```bash
-git checkout -b <branch-name>
+git checkout -b feature/celery-email-worker
 ```
 
-### 3. Stage all changes
+## Step 3: Stage Only Professional Files
+
+**Include:**
+
+- ✅ Code files (`app/workers/*.py`)
+- ✅ Configuration files (`requirements.txt`, `.env.example`)
+- ✅ Essential documentation (`README.md`, `API_GUIDELINES.md`)
+- ✅ Feature-specific guides (e.g., `EMAIL_WORKER_GUIDE.md`)
+
+**Exclude:**
+
+- ❌ Temporary files (`*.log`, `*.tmp`)
+- ❌ Development guides (`QUICK_START.md`, `REDIS_SETUP_WINDOWS.md`)
+- ❌ Internal docs (`BUG_FIXES_SUMMARY.md`, `FEATURE_REVIEW.md`)
+- ❌ Test scripts (`test_celery.py`)
+- ❌ Batch files (`*.bat`)
+- ❌ Environment files (`.env`)
 
 // turbo
 
 ```bash
-git add .
+# Add code files
+git add app/workers/*.py
+
+# Add configuration
+git add requirements.txt
+
+# Add essential documentation (if modified)
+git add README.md
+git add EMAIL_WORKER_GUIDE.md
 ```
 
-### 4. Commit with descriptive message
+## Step 4: Commit with Professional Message
 
-- Format: `<type>: <short description>`
-- Types: feat, fix, docs, style, refactor, test, chore
-- Example: `feat: add blog model and database setup`
+Format: `<type>(<scope>): <description>`
+
+Types:
+
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation only
+- `refactor` - Code refactoring
+- `perf` - Performance improvement
+- `test` - Adding tests
+- `chore` - Maintenance
+
+Example:
+
+```
+feat(workers): implement celery email worker with redis
+
+- Add Celery configuration with Redis broker
+- Implement email tasks with retry logic
+- Create email templates module
+- Add input validation for emails
+- Reduce code complexity to 1
+- Add comprehensive documentation
+```
 
 ```bash
-git commit -m "<commit-message>"
+git commit -m "feat(workers): implement celery email worker with redis
+
+- Add Celery configuration with Redis broker
+- Implement email tasks with retry logic
+- Create email templates module
+- Add input validation for emails
+- Reduce code complexity to 1
+- Add comprehensive documentation"
 ```
 
-### 5. Push to remote
+## Step 5: Push to Remote
 
 // turbo
 
 ```bash
-git push -u origin <branch-name>
+git push -u origin feature/celery-email-worker
 ```
 
-### 6. Create Pull Request using GitHub CLI
+## Step 6: Create Pull Request
 
-- Requires GitHub CLI (`gh`) to be installed and authenticated
-- Auto-generates title from commit message
-- Adds detailed description of changes
+Using GitHub CLI:
 
 ```bash
-gh pr create --title "<PR-title>" --body "<PR-description>" --base main
+gh pr create \
+  --title "feat(workers): Implement Celery Email Worker with Redis" \
+  --body "## Summary
+
+Implemented production-ready Celery email worker system with Redis for background email processing.
+
+## Changes
+
+### New Files
+- \`app/workers/celery_app.py\` - Celery configuration
+- \`app/workers/email_tasks.py\` - Email task implementations
+- \`app/workers/email_templates.py\` - Email template module
+- \`app/workers/example_usage.py\` - FastAPI integration examples
+- \`EMAIL_WORKER_GUIDE.md\` - Complete setup guide
+
+### Modified Files
+- \`requirements.txt\` - Added Celery, Redis, Flower dependencies
+- \`.env.example\` - Added Redis configuration
+
+## Features
+
+✅ Background email processing with Celery
+✅ Automatic retry with exponential backoff
+✅ Email validation with test domain support
+✅ Template separation for maintainability
+✅ Scheduled tasks (daily reports, cleanup)
+✅ Monitoring with Flower UI
+✅ Code complexity reduced to 1
+
+## Testing
+
+- All tasks registered successfully
+- Email validation working
+- Worker processes tasks correctly
+- Test suite passing
+
+## Documentation
+
+Complete setup guide included in \`EMAIL_WORKER_GUIDE.md\`
+
+## Breaking Changes
+
+None
+
+## Dependencies
+
+- celery==5.3.4
+- redis==5.0.1
+- flower==2.0.1
+- email-validator==2.3.0 (already in requirements)
+
+## Deployment Notes
+
+Requires Redis server running. See \`EMAIL_WORKER_GUIDE.md\` for setup instructions." \
+  --base main
 ```
 
-## Notes:
+## Alternative: Manual PR Creation
 
-- Make sure you're in the correct repository directory
-- Ensure you have proper permissions to push to the repository
-- GitHub CLI must be installed: `winget install GitHub.cli`
-- Authenticate with: `gh auth login`
+If GitHub CLI is not available:
+
+1. Push the branch (Step 5)
+2. Go to GitHub repository
+3. Click "Compare & pull request"
+4. Fill in the PR template with above information
+5. Submit PR
+
+## Notes
+
+### Before Raising PR
+
+- ✅ Code reviewed and tested
+- ✅ All tests passing
+- ✅ Documentation updated
+- ✅ No sensitive data committed
+- ✅ Only professional files included
+
+### PR Best Practices
+
+- Clear, descriptive title
+- Detailed description with context
+- List all changes
+- Include testing information
+- Mention breaking changes (if any)
+- Link related issues
+
+### File Selection Strategy
+
+**Always Include:**
+
+- Source code files
+- Configuration files
+- API documentation
+- Feature-specific guides
+- Updated README
+
+**Never Include:**
+
+- `.env` files (use `.env.example`)
+- Log files
+- Temporary files
+- Development-only scripts
+- Internal review documents
+
+---
+
+**Professional PR ready to raise! 🚀**
