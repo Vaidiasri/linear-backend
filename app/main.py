@@ -60,7 +60,28 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # ============================================================================
 # API V1 - Recommended (Versioned Routes)
 # ============================================================================
+# ============================================================================
+# API V1 - Recommended (Versioned Routes)
+# ============================================================================
 app.include_router(api_v1_router, prefix="/api/v1")
+
+# Add CORS Middleware
+from fastapi.middleware.cors import CORSMiddleware
+
+origins = [
+    "http://localhost:5173",  # Vite default port
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",  # Vite fallback port
+    "http://127.0.0.1:5174",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ============================================================================
 # Backward Compatibility - Deprecated (Will be removed in V2)
