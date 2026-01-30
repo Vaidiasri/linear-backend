@@ -33,7 +33,9 @@ class TeamService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Team with this key already exists",
             )
-        return await crud.team.create(db, obj_in=team_in)
+        new_team = await crud.team.create(db, obj_in=team_in)
+        # Re-fetch to ensure relationships (like projects) are eager-loaded for schema validation
+        return await TeamService.get(db, new_team.id)
 
     @staticmethod
     async def update(db: AsyncSession, id: UUID, team_in: TeamUpdate) -> model.Team:

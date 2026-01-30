@@ -26,7 +26,7 @@ class Issue(Base):
 
     # Relationships
     creator = relationship("User", foreign_keys=[creator_id])
-    assignee = relationship("User", foreign_keys=[assignee_id])
+    assignee = relationship("User", foreign_keys=[assignee_id], lazy="selectin")
     team = relationship("Team", back_populates="issues")
     project = relationship("Project", back_populates="issues")
     comments = relationship("Comment", back_populates="issue")

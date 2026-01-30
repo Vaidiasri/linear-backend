@@ -1,0 +1,15 @@
+Listing USER routes:
+Path: /api/v1/users/ | Methods: {'GET'} | Name: get_users
+Path: /api/v1/users/verify_this | Methods: {'GET'} | Name: verify_this
+Path: /api/v1/users/ping | Methods: {'GET'} | Name: ping
+Path: /api/v1/users/me | Methods: {'GET'} | Name: get_my_profile
+Path: /api/v1/users/me/avatar | Methods: {'POST'} | Name: upload_avatar
+Path: /api/v1/users/ | Methods: {'POST'} | Name: create_user
+Path: /api/v1/users/{user_id}/role | Methods: {'PUT'} | Name: update_user_role
+Path: /users/ | Methods: {'GET'} | Name: get_users
+Path: /users/verify_this | Methods: {'GET'} | Name: verify_this
+Path: /users/ping | Methods: {'GET'} | Name: ping
+Path: /users/me | Methods: {'GET'} | Name: get_my_profile
+Path: /users/me/avatar | Methods: {'POST'} | Name: upload_avatar
+Path: /users/ | Methods: {'POST'} | Name: create_user
+Path: /users/{user_id}/role | Methods: {'PUT'} | Name: update_user_role

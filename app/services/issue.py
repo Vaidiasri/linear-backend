@@ -79,8 +79,8 @@ class IssueService:
         db.add(creation_log)
 
         await db.commit()
-        await db.refresh(db_obj)
-        return db_obj
+        # Re-fetch to load relationships (e.g. assignee)
+        return await db.get(model.Issue, db_obj.id)
 
     @staticmethod
     async def get_all(
@@ -185,8 +185,8 @@ class IssueService:
                 setattr(issue, key, new_value)
 
         await db.commit()
-        await db.refresh(issue)
-        return issue
+        # Re-fetch to load relationships
+        return await db.get(model.Issue, issue.id)
 
     @staticmethod
     async def delete(db: AsyncSession, *, id: UUID, current_user: model.User) -> None:

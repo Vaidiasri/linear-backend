@@ -39,10 +39,14 @@ class IssueCreate(IssueBase):
     pass
 
 
+from .user import UserOut
+
+
 class IssueOut(IssueBase):
     id: UUID
     creator_id: UUID
     created_at: datetime
+    assignee: Optional[UserOut] = None
 
     class Config:
         from_attributes = True

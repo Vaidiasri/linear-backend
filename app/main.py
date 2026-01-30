@@ -16,7 +16,7 @@ from .routers import (
     attached,
     dashboard,
     websocket,
-)  # 1. Apne naye router folder ko import karo
+)
 
 # Import V1 API router
 from .api.v1.api import api_router as api_v1_router
@@ -108,6 +108,11 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # 2. Ek test route banao (Browser pe dikhega)
+@app.get("/test-verify")
+async def test_verify():
+    return {"status": "all good in main"}
+
+
 @app.get("/")
 async def root():
     return {

@@ -2,6 +2,7 @@ import uvicorn
 
 if __name__ == "__main__":
     # Bhai, ab bas 'python main.py' likh aur server chal jayega! 🚀
+    # Force reload trigger
     uvicorn.run(
         "app.main:app",
         host="127.0.0.1",

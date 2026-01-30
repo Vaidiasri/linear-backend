@@ -11,13 +11,40 @@ from app.middleware.rate_limiter import limiter
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
+
+@router.get("/public_debug")
+async def public_debug():
+    return {"message": "debug ok"}
+
+
 UPLOAD_DIR = "static/avatars"
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
+@router.get("/", response_model=list[schemas.UserOut])
+# @limiter.limit("100/minute")
+async def get_users(
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    current_user: model.User = Depends(oauth2.get_current_user),
+):
+    return await UserService.get_all(db, skip=skip, limit=limit)
+
+
+@router.get("/verify_this")
+async def verify_this():
+    return {"status": "live"}
+
+
+@router.get("/ping")
+async def ping():
+    return {"message": "pong"}
+
+
 @router.get("/me", response_model=schemas.UserOut)
-@limiter.limit("100/minute")  # Generous for profile reads
+# @limiter.limit("100/minute")  # Generous for profile reads
 async def get_my_profile(
     request: Request, current_user: model.User = Depends(oauth2.get_current_user)
 ):
@@ -25,7 +52,7 @@ async def get_my_profile(
 
 
 @router.post("/me/avatar", response_model=schemas.UserOut)
-@limiter.limit("30/minute")  # Limit avatar uploads
+# @limiter.limit("30/minute")  # Limit avatar uploads
 async def upload_avatar(
     request: Request,
     file: UploadFile = File(...),
@@ -96,7 +123,7 @@ async def upload_avatar(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
-@limiter.limit("10/minute")  # Limit user creation to prevent spam
+# @limiter.limit("10/minute")  # Limit user creation to prevent spam
 async def create_user(
     request: Request, user: schemas.UserCreate, db: AsyncSession = Depends(get_db)
 ):
