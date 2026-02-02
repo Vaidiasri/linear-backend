@@ -145,3 +145,27 @@ async def update_user_role(
     return await UserService.update_role(
         db, user_id=user_id, role=data.role, team_id=data.team_id
     )
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+    id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: model.User = Depends(oauth2.get_current_user),
+):
+    """
+    Delete a user.
+    """
+    # Optional: Check if admin
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Admins can delete users",
+        )
+
+    # Prevent self-deletion?
+    # if current_user.id == id:
+    #     raise HTTPException(status_code=400, detail="Cannot delete your own account")
+
+    await UserService.delete(db, user_id=id)
+    return None
