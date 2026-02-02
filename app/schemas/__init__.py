@@ -10,6 +10,7 @@ from .issue import (
     IssuePriority,
     IssueBase,
     IssueCreate,
+    IssueUpdate,
     IssueOut,
     IssueDetailOut,
     IssueStats,
@@ -36,6 +37,7 @@ __all__ = [
     "IssuePriority",
     "IssueBase",
     "IssueCreate",
+    "IssueUpdate",
     "IssueOut",
     "IssueDetailOut",
     # Comment
