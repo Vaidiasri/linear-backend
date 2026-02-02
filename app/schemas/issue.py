@@ -49,8 +49,8 @@ class IssueUpdate(BaseModel):
     assignee_id: Optional[UUID] = None
 
 
-
 from .user import UserOut
+from .team import TeamOut
 
 
 class IssueOut(IssueBase):
@@ -58,6 +58,7 @@ class IssueOut(IssueBase):
     creator_id: UUID
     created_at: datetime
     assignee: Optional[UserOut] = None
+    team: Optional[TeamOut] = None
 
     class Config:
         from_attributes = True
