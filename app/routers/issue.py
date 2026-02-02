@@ -117,10 +117,10 @@ async def get_issue_by_id(
     return issue
 
 
-@router.put("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.IssueOut)
+@router.patch("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.IssueOut)
 async def update_issue(
     id: UUID,
-    updated_issue: schemas.IssueCreate,
+    updated_issue: schemas.IssueUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(oauth2.get_current_user),
 ):

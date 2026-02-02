@@ -8,7 +8,7 @@ import io
 from fastapi.responses import StreamingResponse
 
 from app import model, crud
-from app.schemas.issue import IssueCreate, IssueCreate as IssueUpdate
+from app.schemas.issue import IssueCreate, IssueUpdate
 from app.filters import IssueFilters
 
 

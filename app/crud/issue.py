@@ -8,6 +8,8 @@ from sqlalchemy.orm import selectinload
 
 from app.crud.base import CRUDBase
 from app.model.issue import Issue
+from app.model.comment import Comment
+from app.model.activity import Activity
 from app.schemas.issue import (
     IssueCreate,
     IssueCreate as IssueUpdate,
@@ -58,8 +60,8 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
             query = query.where(self.model.creator_id == creator_id)
 
         query = query.options(
-            selectinload(self.model.comments).selectinload("author"),
-            selectinload(self.model.activities).selectinload("user"),
+            selectinload(self.model.comments).selectinload(Comment.author),
+            selectinload(self.model.activities).selectinload(Activity.user),
         )
 
         result = await db.execute(query)

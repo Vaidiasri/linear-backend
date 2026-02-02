@@ -39,6 +39,17 @@ class IssueCreate(IssueBase):
     pass
 
 
+class IssueUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[IssueStatus] = None
+    priority: Optional[IssuePriority] = None
+    team_id: Optional[UUID] = None
+    project_id: Optional[UUID] = None
+    assignee_id: Optional[UUID] = None
+
+
+
 from .user import UserOut
 
 
