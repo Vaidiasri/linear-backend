@@ -51,6 +51,8 @@ class IssueUpdate(BaseModel):
 
 from .user import UserOut
 from .team import TeamOut
+from .activity import ActivityOut
+from .comment import CommentOut
 
 
 class IssueOut(IssueBase):
@@ -75,9 +77,11 @@ class IssueDetailOut(IssueBase):
     creator_id: UUID
     created_at: datetime
 
-    # Nested related data - imported to avoid circular imports
-    comments: list = []  # list[CommentOut]
-    activities: list = []  # list[ActivityOut]
+    # Nested related data - properly typed for Pydantic serialization
+    assignee: Optional[UserOut] = None
+    team: Optional[TeamOut] = None
+    comments: list[CommentOut] = []
+    activities: list[ActivityOut] = []
 
     class Config:
         from_attributes = True
