@@ -156,17 +156,14 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
             status_query = status_query.where(self.model.creator_id == creator_id)
             priority_query = priority_query.where(self.model.creator_id == creator_id)
 
-        total_task = db.execute(total_query)
-        status_task = db.execute(status_query)
-        priority_task = db.execute(priority_query)
-
-        total_result, status_result, priority_result = await asyncio.gather(
-            total_task, status_task, priority_task
-        )
+        # Execute queries sequentially to avoid SQLAlchemy async session concurrency issues
+        total_result = await db.execute(total_query)
+        status_result = await db.execute(status_query)
+        priority_result = await db.execute(priority_query)
 
         total_count = total_result.scalar() or 0
         status_counts = {row[0]: row[1] for row in status_result.all()}
-        priority_counts = {row[0]: row[1] for row in priority_result.all()}
+        priority_counts = {str(row[0]): row[1] for row in priority_result.all()}
 
         return {
             "total_count": total_count,
