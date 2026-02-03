@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app import crud, model, utils
@@ -85,3 +86,12 @@ class UserService:
         db: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[model.User]:
         return await crud.user.get_multi(db, skip=skip, limit=limit)
+
+    @staticmethod
+    async def delete(db: AsyncSession, user_id: UUID) -> None:
+        user = await crud.user.get(db, id=user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+        await crud.user.remove(db, id=user_id)

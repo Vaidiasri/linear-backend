@@ -16,6 +16,9 @@ from app.schemas.issue import (
 )  # Reuse schema for now
 
 
+from app.model.team import Team
+
+
 class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
     async def get_multi_by_owner(
         self,
@@ -48,6 +51,11 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
         if search:
             query = query.where(self.model.title.ilike(f"%{search}%"))
 
+        query = query.options(
+            selectinload(self.model.assignee),
+            selectinload(self.model.team).selectinload(Team.projects),
+        )
+
         query = query.offset(skip).limit(limit)
         result = await db.execute(query)
         return result.scalars().all()
@@ -62,6 +70,8 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
         query = query.options(
             selectinload(self.model.comments).selectinload(Comment.author),
             selectinload(self.model.activities).selectinload(Activity.user),
+            selectinload(self.model.assignee),
+            selectinload(self.model.team).selectinload(Team.projects),
         )
 
         result = await db.execute(query)
@@ -118,6 +128,10 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
                     self.model.description.ilike(f"%{q}%"),
                 )
             )
+            .options(
+                selectinload(self.model.assignee),
+                selectinload(self.model.team).selectinload(Team.projects),
+            )
             .offset(skip)
             .limit(limit)
         )
@@ -142,17 +156,14 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
             status_query = status_query.where(self.model.creator_id == creator_id)
             priority_query = priority_query.where(self.model.creator_id == creator_id)
 
-        total_task = db.execute(total_query)
-        status_task = db.execute(status_query)
-        priority_task = db.execute(priority_query)
-
-        total_result, status_result, priority_result = await asyncio.gather(
-            total_task, status_task, priority_task
-        )
+        # Execute queries sequentially to avoid SQLAlchemy async session concurrency issues
+        total_result = await db.execute(total_query)
+        status_result = await db.execute(status_query)
+        priority_result = await db.execute(priority_query)
 
         total_count = total_result.scalar() or 0
         status_counts = {row[0]: row[1] for row in status_result.all()}
-        priority_counts = {row[0]: row[1] for row in priority_result.all()}
+        priority_counts = {str(row[0]): row[1] for row in priority_result.all()}
 
         return {
             "total_count": total_count,

@@ -80,7 +80,7 @@ class IssueService:
 
         await db.commit()
         # Re-fetch to load relationships (e.g. assignee)
-        return await db.get(model.Issue, db_obj.id)
+        return await crud.issue.get_with_relations(db, id=db_obj.id)
 
     @staticmethod
     async def get_all(
@@ -186,7 +186,7 @@ class IssueService:
 
         await db.commit()
         # Re-fetch to load relationships
-        return await db.get(model.Issue, issue.id)
+        return await crud.issue.get_with_relations(db, id=issue.id)
 
     @staticmethod
     async def delete(db: AsyncSession, *, id: UUID, current_user: model.User) -> None:

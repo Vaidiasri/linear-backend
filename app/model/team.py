@@ -14,4 +14,4 @@ class Team(Base):
     # Relationships
     issues = relationship("Issue", back_populates="team")
     projects = relationship("Project", back_populates="team")
-    members = relationship("User", back_populates="team") # member vo hai jo vaha user m jab humne relation bana to string m add kiya tha vo
+    members = relationship("User", back_populates="team")
