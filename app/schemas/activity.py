@@ -13,7 +13,7 @@ class ActivityOut(BaseModel):
     issue_id: UUID
     user_id: UUID
     attribute: str  # Kaunsa field change hua (status, priority, etc.)
-    old_value: str
+    old_value: str | None
     new_value: str
     created_at: datetime
 
