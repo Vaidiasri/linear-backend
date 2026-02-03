@@ -15,7 +15,7 @@ class Activity(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
 
     attribute = Column(String, nullable=False)
-    old_value = Column(String, nullable=False)
+    old_value = Column(String, nullable=True)
     new_value = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
