@@ -49,13 +49,16 @@ class ProjectService:
     ) -> model.Project:
         project = await ProjectService.get(db, id)
 
-        # If team_id is being updated, validate it exists
-        if project_in.team_id != project.team_id:
-            team = await crud.team.get(db, id=project_in.team_id)
-            if not team:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
-                )
+        # Early return if team_id unchanged
+        if project_in.team_id == project.team_id:
+            return await crud.project.update(db, db_obj=project, obj_in=project_in)
+
+        # Validate new team exists
+        team = await crud.team.get(db, id=project_in.team_id)
+        if not team:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Team not found"
+            )
 
         return await crud.project.update(db, db_obj=project, obj_in=project_in)
 
