@@ -34,6 +34,39 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         result = await db.execute(select(self.model).offset(skip).limit(limit))
         return result.scalars().all()
 
+    async def get_multi_by_owner(
+        self,
+        db: AsyncSession,
+        *,
+        owner_id: UUID,
+        owner_field: str = "owner_id",
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[ModelType]:
+        """
+        Get multiple records filtered by owner field.
+
+        Args:
+            db: Database session
+            owner_id: UUID of the owner
+            owner_field: Name of the field to filter by (e.g., 'team_id', 'user_id')
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+        """
+        if not hasattr(self.model, owner_field):
+            raise ValueError(
+                f"Model {self.model.__name__} has no attribute '{owner_field}'"
+            )
+
+        filter_column = getattr(self.model, owner_field)
+        result = await db.execute(
+            select(self.model)
+            .where(filter_column == owner_id)
+            .offset(skip)
+            .limit(limit)
+        )
+        return result.scalars().all()
+
     async def create(self, db: AsyncSession, *, obj_in: CreateSchemaType) -> ModelType:
         obj_in_data = jsonable_encoder(obj_in)
         db_obj = self.model(**obj_in_data)  # type: ignore
@@ -47,7 +80,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db: AsyncSession,
         *,
         db_obj: ModelType,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]]
+        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
     ) -> ModelType:
         obj_data = jsonable_encoder(db_obj)
         if isinstance(obj_in, dict):
