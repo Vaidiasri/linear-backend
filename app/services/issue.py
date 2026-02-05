@@ -88,34 +88,34 @@ class IssueService:
         *,
         filters: IssueFilters,
         skip: int = 0,
-        limit: int = 10,
+        limit: int = 100,
         current_user: model.User,
     ) -> List[model.Issue]:
-        creator_id = None
-        team_id = filters.team_id
-
         # RBAC Logic
         if current_user.role != model.UserRole.ADMIN:
-            # If not Admin, restrict to user's team?
-            # Or if Member, restrict to own team.
-            # Assuming Team Lead and Member can see Team Issues.
-            # If user has no team, they see nothing?
-            if current_user.team_id:
-                team_id = current_user.team_id
-            else:
-                # Fallback to own created if no team?
-                # Or return empty?
-                # Let's restrict to creator_id if no team assigned.
-                creator_id = current_user.id
+            # Use new visibility logic: Team OR Assigned OR Created
+            return await crud.issue.get_issues_for_user(
+                db,
+                user_id=current_user.id,
+                team_id=current_user.team_id,
+                skip=skip,
+                limit=limit,
+                filters={
+                    "status": filters.status,
+                    "priority": filters.priority,
+                    "search": filters.search,
+                },
+            )
 
+        # Admin Logic (Global Access)
         return await crud.issue.get_multi_by_owner(
             db,
-            creator_id=creator_id,
+            # Admin sees all
             skip=skip,
             limit=limit,
             status=filters.status,
             priority=filters.priority,
-            team_id=team_id,
+            team_id=filters.team_id,
             project_id=filters.project_id,
             assignee_id=filters.assignee_id,
             search=filters.search,
@@ -167,26 +167,41 @@ class IssueService:
         )
 
         # 3. Track changes for activity log
-        tracked_fields = ["status", "priority", "title", "assignee_id"]
-        update_data = issue_in.model_dump(exclude_unset=True)
-
-        for key, new_value in update_data.items():
-            old_value = getattr(issue, key)
-            if old_value != new_value:
-                if key in tracked_fields:
-                    new_log = model.Activity(
-                        issue_id=issue.id,
-                        user_id=current_user.id,
-                        attribute=key,
-                        old_value=str(old_value) if old_value is not None else "None",
-                        new_value=str(new_value) if new_value is not None else "None",
-                    )
-                    db.add(new_log)
-                setattr(issue, key, new_value)
+        await IssueService._track_changes(db, current_user, issue, issue_in)
 
         await db.commit()
         # Re-fetch to load relationships
         return await crud.issue.get_with_relations(db, id=issue.id)
+
+    @staticmethod
+    async def _track_changes(
+        db: AsyncSession,
+        current_user: model.User,
+        issue: model.Issue,
+        issue_in: IssueUpdate,
+    ) -> None:
+        """
+        Track changes for activity log.
+        Complexity: 1 (Linear flow with helper)
+        """
+        tracked_fields = ["status", "priority", "title", "assignee_id"]
+        update_data = issue_in.model_dump(exclude_unset=True)
+
+        for key, new_value in update_data.items():
+            # Update field
+            old_value = getattr(issue, key)
+            setattr(issue, key, new_value)
+
+            # Log change if tracked field and value changed
+            if key in tracked_fields and old_value != new_value:
+                new_log = model.Activity(
+                    issue_id=issue.id,
+                    user_id=current_user.id,
+                    attribute=key,
+                    old_value=str(old_value) if old_value is not None else "None",
+                    new_value=str(new_value) if new_value is not None else "None",
+                )
+                db.add(new_log)
 
     @staticmethod
     async def delete(db: AsyncSession, *, id: UUID, current_user: model.User) -> None:
@@ -224,13 +239,15 @@ class IssueService:
     async def export_csv(
         db: AsyncSession, *, filters: IssueFilters, current_user: model.User
     ) -> StreamingResponse:
+        # Default to Admin (sees all)
         creator_id = None
         team_id = filters.team_id
 
+        # RBAC: Member sees Team or Own issues
         if current_user.role != model.UserRole.ADMIN:
-            if current_user.team_id:
-                team_id = current_user.team_id
-            else:
+            team_id = current_user.team_id
+            # If no team, restrict to own created issues
+            if not team_id:
                 creator_id = current_user.id
 
         issues = await crud.issue.get_all_for_export(
