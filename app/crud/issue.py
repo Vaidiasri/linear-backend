@@ -60,6 +60,62 @@ class CRUDIssue(CRUDBase[Issue, IssueCreate, IssueUpdate]):
         result = await db.execute(query)
         return result.scalars().all()
 
+    async def get_issues_for_user(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: UUID,
+        team_id: Optional[UUID],
+        skip: int = 0,
+        limit: int = 100,
+        filters: dict = None,
+    ) -> List[Issue]:
+        """
+        Fetch issues visible to a specific user using OR logic:
+        Visible if:
+        - In User's Team
+        - OR Assigned to User
+        - OR Created by User
+        """
+        conditions = []
+
+        # Base visibility conditions
+        visibility_conditions = [
+            self.model.creator_id == user_id,
+            self.model.assignee_id == user_id,
+        ]
+        if team_id:
+            visibility_conditions.append(self.model.team_id == team_id)
+
+        # Combine visibility with OR
+        base_query = select(self.model).where(or_(*visibility_conditions))
+
+        # Apply additional filters (AND)
+        # Apply additional filters (AND)
+        safe_filters = filters or {}
+
+        if safe_filters.get("status"):
+            base_query = base_query.where(self.model.status == safe_filters["status"])
+
+        if safe_filters.get("priority") is not None:
+            base_query = base_query.where(
+                self.model.priority == safe_filters["priority"]
+            )
+
+        if safe_filters.get("search"):
+            base_query = base_query.where(
+                self.model.title.ilike(f"%{safe_filters['search']}%")
+            )
+
+        base_query = base_query.options(
+            selectinload(self.model.assignee),
+            selectinload(self.model.team).selectinload(Team.projects),
+        )
+
+        base_query = base_query.offset(skip).limit(limit)
+        result = await db.execute(base_query)
+        return result.scalars().all()
+
     async def get_with_relations(
         self, db: AsyncSession, *, id: UUID, creator_id: Optional[UUID] = None
     ) -> Optional[Issue]:
