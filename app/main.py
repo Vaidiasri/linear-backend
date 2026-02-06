@@ -94,7 +94,7 @@ app.include_router(project.router, tags=["Projects (Deprecated - Use /api/v1)"])
 app.include_router(comment.router, tags=["Comments (Deprecated - Use /api/v1)"])
 app.include_router(attached.router, tags=["Attachments (Deprecated - Use /api/v1)"])
 app.include_router(dashboard.router, tags=["Dashboard (Deprecated - Use /api/v1)"])
-app.include_router(websocket.router, tags=["WebSocket (Deprecated - Use /api/v1)"])
+# app.include_router(websocket.router, tags=["WebSocket (Deprecated - Use /api/v1)"])
 
 
 # Global Exception Handler

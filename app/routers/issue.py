@@ -30,21 +30,20 @@ async def create_issue(
     check_permission(current_user, "issue", "create")
     new_issue = await IssueService.create(db, issue_in=issue, current_user=current_user)
 
-    # Broadcast notification
-    if new_issue.team_id:
-        await connection_manager.broadcast(
-            new_issue.team_id,
-            json.dumps(
-                {
-                    "event": "ISSUE_CREATED",
-                    "issue_id": str(new_issue.id),
-                    "title": new_issue.title,
-                    "project_id": (
-                        str(new_issue.project_id) if new_issue.project_id else None
-                    ),
-                }
-            ),
-        )
+    # Broadcast notification to ALL connected users
+    print(f"🔔 Broadcasting ISSUE_CREATED for issue {new_issue.id} to all users")
+    await connection_manager.broadcast_to_all(
+        json.dumps(
+            {
+                "event": "ISSUE_CREATED",
+                "issue_id": str(new_issue.id),
+                "title": new_issue.title,
+                "project_id": (
+                    str(new_issue.project_id) if new_issue.project_id else None
+                ),
+            }
+        ),
+    )
 
     return new_issue
 
@@ -136,18 +135,17 @@ async def update_issue(
         db, id=id, issue_in=updated_issue, current_user=current_user
     )
 
-    # Broadcast notification
-    if updated.team_id:
-        await connection_manager.broadcast(
-            updated.team_id,
-            json.dumps(
-                {
-                    "event": "ISSUE_UPDATED",
-                    "issue_id": str(updated.id),
-                    "title": updated.title,
-                }
-            ),
-        )
+    # Broadcast notification to ALL connected users
+    print(f"🔔 Broadcasting ISSUE_UPDATED for issue {updated.id} to all users")
+    await connection_manager.broadcast_to_all(
+        json.dumps(
+            {
+                "event": "ISSUE_UPDATED",
+                "issue_id": str(updated.id),
+                "title": updated.title,
+            }
+        ),
+    )
 
     return updated
 
@@ -168,18 +166,17 @@ async def delete_issue(
 
     await IssueService.delete(db, id=id, current_user=current_user)
 
-    # Broadcast notification
-    if issue.team_id:
-        await connection_manager.broadcast(
-            issue.team_id,
-            json.dumps(
-                {
-                    "event": "ISSUE_DELETED",
-                    "issue_id": str(issue.id),
-                    "title": issue.title,
-                }
-            ),
-        )
+    # Broadcast notification to ALL connected users
+    print(f"🔔 Broadcasting ISSUE_DELETED for issue {issue.id} to all users")
+    await connection_manager.broadcast_to_all(
+        json.dumps(
+            {
+                "event": "ISSUE_DELETED",
+                "issue_id": str(issue.id),
+                "title": issue.title,
+            }
+        ),
+    )
 
     return None
 
