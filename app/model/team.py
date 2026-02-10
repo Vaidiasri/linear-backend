@@ -15,3 +15,4 @@ class Team(Base):
     issues = relationship("Issue", back_populates="team")
     projects = relationship("Project", back_populates="team")
     members = relationship("User", back_populates="team")
+    cycles = relationship("Cycle", back_populates="team")

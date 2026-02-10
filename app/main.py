@@ -16,6 +16,7 @@ from .routers import (
     attached,
     dashboard,
     websocket,
+    cycle,
 )
 
 # Import V1 API router
@@ -94,6 +95,7 @@ app.include_router(project.router, tags=["Projects (Deprecated - Use /api/v1)"])
 app.include_router(comment.router, tags=["Comments (Deprecated - Use /api/v1)"])
 app.include_router(attached.router, tags=["Attachments (Deprecated - Use /api/v1)"])
 app.include_router(dashboard.router, tags=["Dashboard (Deprecated - Use /api/v1)"])
+app.include_router(cycle.router, tags=["Cycles (Deprecated - Use /api/v1)"])
 # app.include_router(websocket.router, tags=["WebSocket (Deprecated - Use /api/v1)"])
 
 

@@ -15,6 +15,7 @@ from app.routers import (
     attached,
     dashboard,
     websocket,
+    cycle,
 )
 
 # Create V1 API router
@@ -29,4 +30,5 @@ api_router.include_router(project.router, tags=["V1 - Projects"])
 api_router.include_router(comment.router, tags=["V1 - Comments"])
 api_router.include_router(attached.router, tags=["V1 - Attachments"])
 api_router.include_router(dashboard.router, tags=["V1 - Dashboard"])
+api_router.include_router(cycle.router, tags=["V1 - Cycles"])
 api_router.include_router(websocket.router, tags=["V1 - WebSocket"])
