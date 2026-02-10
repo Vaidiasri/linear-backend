@@ -9,6 +9,7 @@ from .issue import Issue
 from .comment import Comment
 from .activity import Activity
 from .attached import Attachment
+from .cycle import Cycle
 
 __all__ = [
     "User",
@@ -19,4 +20,5 @@ __all__ = [
     "Comment",
     "Activity",
     "Attachment",
+    "Cycle",
 ]

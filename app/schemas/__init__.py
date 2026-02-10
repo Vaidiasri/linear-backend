@@ -18,6 +18,7 @@ from .issue import (
 from .comment import CommentCreate, CommentOut
 from .activity import ActivityOut
 from .attached import AttachmentOut
+from .cycle import CycleOut, CycleCreate, CycleUpdate
 from .dashboard import DashboardOut
 
 __all__ = [

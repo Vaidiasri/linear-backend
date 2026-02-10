@@ -31,3 +31,5 @@ class Issue(Base):
     project = relationship("Project", back_populates="issues")
     comments = relationship("Comment", back_populates="issue")
     activities = relationship("Activity", back_populates="issue")
+    cycle_id = Column(UUID(as_uuid=True), ForeignKey("cycles.id"), nullable=True)
+    cycle = relationship("Cycle", back_populates="issues")
