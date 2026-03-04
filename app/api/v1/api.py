@@ -16,6 +16,7 @@ from app.routers import (
     dashboard,
     websocket,
     cycle,
+    notification,
 )
 
 # Create V1 API router
@@ -32,3 +33,4 @@ api_router.include_router(attached.router, tags=["V1 - Attachments"])
 api_router.include_router(dashboard.router, tags=["V1 - Dashboard"])
 api_router.include_router(cycle.router, tags=["V1 - Cycles"])
 api_router.include_router(websocket.router, tags=["V1 - WebSocket"])
+api_router.include_router(notification.router, prefix="/notifications", tags=["V1 - Notifications"])

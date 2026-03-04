@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from app import model, crud
 from app.schemas.issue import IssueCreate, IssueUpdate
 from app.filters import IssueFilters
+from app.utils.notification import create_notification
 
 
 class IssueService:
@@ -79,6 +80,18 @@ class IssueService:
         db.add(creation_log)
 
         await db.commit()
+        
+        # 4. In-App Notification (Assignment)
+        if issue_in.assignee_id and issue_in.assignee_id != current_user.id:
+            await create_notification(
+                db=db,
+                user_id=issue_in.assignee_id,
+                title="New Issue Assigned",
+                message=f"You have been assigned to issue: {db_obj.title}",
+                type="issue_assigned",
+                issue_id=db_obj.id,
+            )
+
         # Re-fetch to load relationships (e.g. assignee)
         return await crud.issue.get_with_relations(db, id=db_obj.id)
 
@@ -202,6 +215,36 @@ class IssueService:
                     new_value=str(new_value) if new_value is not None else "None",
                 )
                 db.add(new_log)
+
+                # Generate In-App notification
+                if key == "assignee_id" and new_value is not None:
+                    # Notify new assignee
+                    if new_value != current_user.id:
+                        await create_notification(
+                            db=db,
+                            user_id=new_value,
+                            title="Issue Assigned",
+                            message=f"You have been assigned to issue: {issue.title}",
+                            type="issue_assigned",
+                            issue_id=issue.id,
+                        )
+                elif key == "status":
+                    # Notify assignee and creator of status change
+                    users_to_notify = set()
+                    if issue.assignee_id and issue.assignee_id != current_user.id:
+                        users_to_notify.add(issue.assignee_id)
+                    if issue.creator_id and issue.creator_id != current_user.id:
+                        users_to_notify.add(issue.creator_id)
+
+                    for uid in users_to_notify:
+                        await create_notification(
+                            db=db,
+                            user_id=uid,
+                            title="Issue Status Updated",
+                            message=f"Status changed to '{new_value}' for issue: {issue.title}",
+                            type="issue_status_changed",
+                            issue_id=issue.id,
+                        )
 
     @staticmethod
     async def delete(db: AsyncSession, *, id: UUID, current_user: model.User) -> None:

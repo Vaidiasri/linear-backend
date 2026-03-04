@@ -10,6 +10,7 @@ from .comment import Comment
 from .activity import Activity
 from .attached import Attachment
 from .cycle import Cycle
+from .notification import Notification
 
 __all__ = [
     "User",
@@ -21,4 +22,5 @@ __all__ = [
     "Activity",
     "Attachment",
     "Cycle",
+    "Notification",
 ]

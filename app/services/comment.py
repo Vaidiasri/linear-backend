@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, model
 from app.schemas.comment import CommentCreate, CommentCreate as CommentUpdate
+from app.utils.notification import create_notification
 
 
 class CommentService:
@@ -63,6 +64,23 @@ class CommentService:
             new_value="New comment added",
         )
         db.add(comment_log)
+
+        # 4. Generate In-App notifications
+        users_to_notify = set()
+        if issue.assignee_id and issue.assignee_id != current_user.id:
+            users_to_notify.add(issue.assignee_id)
+        if issue.creator_id and issue.creator_id != current_user.id:
+            users_to_notify.add(issue.creator_id)
+
+        for uid in users_to_notify:
+            await create_notification(
+                db=db,
+                user_id=uid,
+                title="New Comment on Issue",
+                message=f"{current_user.username or current_user.email} commented on: {issue.title}",
+                type="comment_created",
+                issue_id=issue.id,
+            )
 
         await db.commit()
         await db.refresh(new_comment)
